@@ -90,10 +90,10 @@ func createNewArticle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func deleteArticle(w http.ResponseWriter, r *http.Request) {
+func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
-	fmt.Printf("Endpoint Hit: deleteArticle by id='%v'\n", id)
+	fmt.Printf("Endpoint Hit: deleteSingleArticle by id='%v'\n", id)
 	found := findArticle(id)
 	if found != nil {
 		article := found[0].ArticleObject
@@ -112,13 +112,39 @@ func deleteArticle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	fmt.Printf("Endpoint Hit: updateSingleArticle by id='%v'\n", id)
+	found := findArticle(id)
+	if found != nil {
+		index := found[0].Index
+		w.WriteHeader(200)
+		Articles = append(Articles[:index], Articles[index+1:]...)
+		reqBody, _ := ioutil.ReadAll(r.Body)
+		var article Article
+		json.Unmarshal(reqBody, &article)
+		Articles = append(Articles, article)
+		result := article
+		json.NewEncoder(w).Encode(result)
+	} else {
+		result := HttpError{
+			StatusCode: 404,
+			Message:    fmt.Sprintf("No article found by id: '%v'!", id),
+		}
+		w.WriteHeader(404)
+		json.NewEncoder(w).Encode(result)
+	}
+}
+
 func handleRequests() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", homePage)
 	router.HandleFunc("/article", returnAllArticles).Methods("GET")
 	router.HandleFunc("/article", createNewArticle).Methods("POST")
 	router.HandleFunc("/article/{id}", returnSingleArticle).Methods("GET")
-	router.HandleFunc("/article/{id}", deleteArticle).Methods("DELETE")
+	router.HandleFunc("/article/{id}", deleteSingleArticle).Methods("DELETE")
+	router.HandleFunc("/article/{id}", updateSingleArticle).Methods("PUT")
 	log.Fatal(http.ListenAndServe(":10000", router))
 }
 
