@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -44,10 +45,10 @@ func returnAllArticles(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Articles)
 }
 
-func returnSingleArticles(w http.ResponseWriter, r *http.Request) {
+func returnSingleArticle(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
-	fmt.Printf("Endpoint Hit: returnSingeArticles by id='%v'\n", id)
+	fmt.Printf("Endpoint Hit: returnSingeArticle by id='%v'\n", id)
 	found := findArticle(id)
 	if found != nil {
 		result := found[0]
@@ -63,11 +64,32 @@ func returnSingleArticles(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func createNewArticle(w http.ResponseWriter, r *http.Request) {
+	reqBody, _ := ioutil.ReadAll(r.Body)
+	var article Article
+	json.Unmarshal(reqBody, &article)
+	fmt.Printf("Endpoint Hit: CreateNewArticle by id='%v'\n", article.Id)
+	found := findArticle(string(article.Id))
+	if found == nil {
+		w.WriteHeader(200)
+		Articles = append(Articles, article)
+		json.NewEncoder(w).Encode(article)
+	} else {
+		result := HttpError{
+			StatusCode: 400,
+			Message:    fmt.Sprintf("One article found by id: '%v'!", article.Id),
+		}
+		w.WriteHeader(404)
+		json.NewEncoder(w).Encode(result)
+	}
+}
+
 func handleRequests() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", homePage)
-	router.HandleFunc("/article", returnAllArticles)
-	router.HandleFunc("/article/{id}", returnSingleArticles)
+	router.HandleFunc("/article", returnAllArticles).Methods("GET")
+	router.HandleFunc("/article", createNewArticle).Methods("POST")
+	router.HandleFunc("/article/{id}", returnSingleArticle).Methods("GET")
 	log.Fatal(http.ListenAndServe(":10000", router))
 }
 
