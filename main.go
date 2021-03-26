@@ -30,10 +30,19 @@ func returnAllArticles(w http.ResponseWriter, r *http.Request) {
 func returnSingleArticles(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
+	var found []Article
 	for _, article := range Articles {
 		if article.Id == id {
-			json.NewEncoder(w).Encode(article)
+			found = append(found, article)
+			break
 		}
+	}
+	if found != nil {
+		result := found[0]
+		json.NewEncoder(w).Encode(result)
+	} else {
+		result := "{'status_code': 404, 'content': 'No article found!'}"
+		json.NewEncoder(w).Encode(result)
 	}
 }
 
