@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 )
@@ -26,12 +27,14 @@ func returnAllArticles(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleRequests() {
-	http.HandleFunc("/", homePage)
-	http.HandleFunc("/articles", returnAllArticles)
-	log.Fatal(http.ListenAndServe(":10000", nil))
+	router := mux.NewRouter().StrictSlash(true)
+	router.HandleFunc("/", homePage)
+	router.HandleFunc("/all", returnAllArticles)
+	log.Fatal(http.ListenAndServe(":10000", router))
 }
 
 func main() {
+	fmt.Println("Rest API v2.0 - Mux Routers")
 	Articles = []Article{
 		Article{Title: "1984", Desc: "Article of 1984 book", Content: "This book is wonderful"},
 		Article{Title: "Homo sapiens", Desc: "Article of Homo sapiens book", Content: "This book is so useful"},
