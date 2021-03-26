@@ -23,6 +23,17 @@ type Article struct {
 
 var Articles []Article
 
+func findArticle(id string) []Article {
+	var found []Article
+	for _, article := range Articles {
+		if article.Id == id {
+			found = append(found, article)
+			break
+		}
+	}
+	return found
+}
+
 func homePage(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Welcome to HomePage!")
 	fmt.Println("Endpoint Hit: homePage")
@@ -37,13 +48,7 @@ func returnSingleArticles(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: returnSingeArticles by id='%v'\n", id)
-	var found []Article
-	for _, article := range Articles {
-		if article.Id == id {
-			found = append(found, article)
-			break
-		}
-	}
+	found := findArticle(id)
 	if found != nil {
 		result := found[0]
 		w.WriteHeader(200)
@@ -61,7 +66,7 @@ func returnSingleArticles(w http.ResponseWriter, r *http.Request) {
 func handleRequests() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", homePage)
-	router.HandleFunc("/all", returnAllArticles)
+	router.HandleFunc("/article", returnAllArticles)
 	router.HandleFunc("/article/{id}", returnSingleArticles)
 	log.Fatal(http.ListenAndServe(":10000", router))
 }
