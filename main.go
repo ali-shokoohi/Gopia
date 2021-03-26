@@ -22,13 +22,19 @@ type Article struct {
 	Content string `json:"Content"`
 }
 
+type FoundArticle struct {
+	Index         int     `json:"Index"`
+	ArticleObject Article `json:"Article"`
+}
+
 var Articles []Article
 
-func findArticle(id string) []Article {
-	var found []Article
-	for _, article := range Articles {
+func findArticle(id string) []FoundArticle {
+	var found []FoundArticle
+	for index, article := range Articles {
 		if article.Id == id {
-			found = append(found, article)
+			foundArticle := FoundArticle{Index: index, ArticleObject: article}
+			found = append(found, foundArticle)
 			break
 		}
 	}
@@ -51,7 +57,7 @@ func returnSingleArticle(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Endpoint Hit: returnSingeArticle by id='%v'\n", id)
 	found := findArticle(id)
 	if found != nil {
-		result := found[0]
+		result := found[0].ArticleObject
 		w.WriteHeader(200)
 		json.NewEncoder(w).Encode(result)
 	} else {
@@ -84,12 +90,35 @@ func createNewArticle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func deleteArticle(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	fmt.Printf("Endpoint Hit: deleteArticle by id='%v'\n", id)
+	found := findArticle(id)
+	if found != nil {
+		article := found[0].ArticleObject
+		index := found[0].Index
+		w.WriteHeader(200)
+		Articles = append(Articles[:index], Articles[index+1:]...)
+		result := article
+		json.NewEncoder(w).Encode(result)
+	} else {
+		result := HttpError{
+			StatusCode: 404,
+			Message:    fmt.Sprintf("No article found by id: '%v'!", id),
+		}
+		w.WriteHeader(404)
+		json.NewEncoder(w).Encode(result)
+	}
+}
+
 func handleRequests() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", homePage)
 	router.HandleFunc("/article", returnAllArticles).Methods("GET")
 	router.HandleFunc("/article", createNewArticle).Methods("POST")
 	router.HandleFunc("/article/{id}", returnSingleArticle).Methods("GET")
+	router.HandleFunc("/article/{id}", deleteArticle).Methods("DELETE")
 	log.Fatal(http.ListenAndServe(":10000", router))
 }
 
