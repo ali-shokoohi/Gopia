@@ -3,10 +3,16 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
+
+type HttpError struct {
+	StatusCode int    `json:"status_code"`
+	Message    string `json:"message"`
+}
 
 type Article struct {
 	Id      string `json:"Id"`
@@ -30,6 +36,7 @@ func returnAllArticles(w http.ResponseWriter, r *http.Request) {
 func returnSingleArticles(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
+	fmt.Printf("Endpoint Hit: returnSingeArticles by id='%v'\n", id)
 	var found []Article
 	for _, article := range Articles {
 		if article.Id == id {
@@ -39,9 +46,14 @@ func returnSingleArticles(w http.ResponseWriter, r *http.Request) {
 	}
 	if found != nil {
 		result := found[0]
+		w.WriteHeader(200)
 		json.NewEncoder(w).Encode(result)
 	} else {
-		result := "{'status_code': 404, 'content': 'No article found!'}"
+		result := HttpError{
+			StatusCode: 404,
+			Message:    fmt.Sprintf("No article found by id: '%v'!", id),
+		}
+		w.WriteHeader(404)
 		json.NewEncoder(w).Encode(result)
 	}
 }
