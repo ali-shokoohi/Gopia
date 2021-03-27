@@ -15,6 +15,18 @@ const (
 	dbname   = "go_api"
 )
 
+func insertInto(db *sql.DB, tableName string, columns string, values string) (*sql.Rows, error) {
+	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s);", tableName, columns, values)
+	row, err := db.Query(query)
+	if err != nil {
+		fmt.Printf("Error: '%v' !\n", err)
+		return nil, err
+	}
+	defer row.Close()
+	fmt.Printf("Insert into table: '%v' !\n", row)
+	return row, nil
+}
+
 func createTable(db *sql.DB, tableName string, columns string) (*sql.Rows, error) {
 	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (%s);", tableName, columns)
 	row, err := db.Query(query)
