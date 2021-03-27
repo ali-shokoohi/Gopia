@@ -149,7 +149,8 @@ func handleRequests() {
 }
 
 func main() {
-	//db := get_db()
+	db := getDatabase()
+	defer db.Close()
 	fmt.Println("Rest API v2.0 - Mux Routers")
 	Articles = []Article{
 		Article{Id: "0", Title: "1984", Desc: "Article of 1984 book", Content: "This book is wonderful"},

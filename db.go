@@ -15,7 +15,19 @@ const (
 	dbname   = "go_api"
 )
 
-func get_db() *sql.DB {
+func createTable(db *sql.DB, tableName string, columns string) (*sql.Rows, error) {
+	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (%s);", tableName, columns)
+	row, err := db.Query(query)
+	if err != nil {
+		fmt.Printf("Error: '%v' !\n", err)
+		return nil, err
+	}
+	defer row.Close()
+	fmt.Printf("Create table: '%v' !\n", row)
+	return row, nil
+}
+
+func getDatabase() *sql.DB {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
@@ -24,7 +36,6 @@ func get_db() *sql.DB {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
 
 	err = db.Ping()
 	if err != nil {
