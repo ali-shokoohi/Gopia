@@ -32,6 +32,21 @@ func (a *Article) summarize() string {
 	return fmt.Sprintf("%s: %s", a.Title, a.Desc)
 }
 
+type Saver interface {
+	save() (bool, error)
+}
+
+func (a *Article) save() (bool, error) {
+	values := fmt.Sprintf("'%s', '%s', '%s', '%s'",
+		a.Id, a.Title, a.Desc, a.Content)
+	columns := "id, title, description, content"
+	_, err := insertInto(db, "articles", columns, values)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 type FoundArticle struct {
 	Index         int     `json:"Index"`
 	ArticleObject Article `json:"Article"`
@@ -159,10 +174,18 @@ func handleRequests() {
 }
 
 func main() {
+	createTable(db, "articles", coloums)
 	fmt.Println("Rest API v2.0 - Mux Routers")
-	Articles = []Article{
-		Article{Id: "0", Title: "1984", Desc: "Article of 1984 book", Content: "This book is wonderful"},
-		Article{Id: "1", Title: "Homo sapiens", Desc: "Article of Homo sapiens book", Content: "This book is so useful"},
+	book1984 := Article{Id: "0", Title: "1984", Desc: "Article of 1984 book", Content: "This book is wonderful"}
+	bookHuman := Article{Id: "1", Title: "Homo sapiens", Desc: "Article of Homo sapiens book", Content: "This book is so useful"}
+	Articles = []Article{book1984, bookHuman}
+	_, err := book1984.save()
+	if err != nil {
+		fmt.Printf("Error: '%v' !\n", err)
+	}
+	_, err = bookHuman.save()
+	if err != nil {
+		fmt.Printf("Error: '%v' !\n", err)
 	}
 	defer db.Close()
 	handleRequests()
