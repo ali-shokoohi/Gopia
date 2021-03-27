@@ -10,6 +10,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+var db = getDatabase()
+
 type HttpError struct {
 	StatusCode int    `json:"status_code"`
 	Message    string `json:"message"`
@@ -20,6 +22,14 @@ type Article struct {
 	Title   string `json:"Title"`
 	Desc    string `json:"Descriptions"`
 	Content string `json:"Content"`
+}
+
+type Summarizer interface {
+	summarize() string
+}
+
+func (a *Article) summarize() string {
+	return fmt.Sprintf("%s: %s", a.Title, a.Desc)
 }
 
 type FoundArticle struct {
@@ -149,12 +159,11 @@ func handleRequests() {
 }
 
 func main() {
-	db := getDatabase()
-	defer db.Close()
 	fmt.Println("Rest API v2.0 - Mux Routers")
 	Articles = []Article{
 		Article{Id: "0", Title: "1984", Desc: "Article of 1984 book", Content: "This book is wonderful"},
 		Article{Id: "1", Title: "Homo sapiens", Desc: "Article of Homo sapiens book", Content: "This book is so useful"},
 	}
+	defer db.Close()
 	handleRequests()
 }
