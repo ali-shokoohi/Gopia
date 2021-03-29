@@ -10,42 +10,18 @@ import (
 	"github.com/gorilla/mux"
 )
 
-var db = getDatabase()
-
 type HttpError struct {
 	StatusCode int    `json:"status_code"`
 	Message    string `json:"message"`
 }
 
-type Article struct {
-	Id      string `json:"Id"`
-	Title   string `json:"Title"`
-	Desc    string `json:"Descriptions"`
-	Content string `json:"Content"`
-}
+// type Summarizer interface {
+// 	summarize() string
+// }
 
-type Summarizer interface {
-	summarize() string
-}
-
-func (a *Article) summarize() string {
-	return fmt.Sprintf("%s: %s", a.Title, a.Desc)
-}
-
-type Saver interface {
-	save() (bool, error)
-}
-
-func (a *Article) save() (bool, error) {
-	values := fmt.Sprintf("'%s', '%s', '%s', '%s'",
-		a.Id, a.Title, a.Desc, a.Content)
-	columns := "id, title, description, content"
-	_, err := insertInto(db, "articles", columns, values)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
-}
+// func (a *Article) summarize() string {
+// 	return fmt.Sprintf("%s: %s", a.Title, a.Desc)
+// }
 
 type FoundArticle struct {
 	Index         int     `json:"Index"`
@@ -57,7 +33,7 @@ var Articles []Article
 func findArticle(id string) []FoundArticle {
 	var found []FoundArticle
 	for index, article := range Articles {
-		if article.Id == id {
+		if fmt.Sprint(article.ID) == id {
 			foundArticle := FoundArticle{Index: index, ArticleObject: article}
 			found = append(found, foundArticle)
 			break
@@ -73,6 +49,7 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 
 func returnAllArticles(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Endpoint Hit: returnAllArticles")
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Articles)
 }
 
@@ -80,6 +57,7 @@ func returnSingleArticle(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: returnSingeArticle by id='%v'\n", id)
+	w.Header().Set("Content-Type", "application/json")
 	found := findArticle(id)
 	if found != nil {
 		result := found[0].ArticleObject
@@ -99,16 +77,18 @@ func createNewArticle(w http.ResponseWriter, r *http.Request) {
 	reqBody, _ := ioutil.ReadAll(r.Body)
 	var article Article
 	json.Unmarshal(reqBody, &article)
-	fmt.Printf("Endpoint Hit: CreateNewArticle by id='%v'\n", article.Id)
-	found := findArticle(string(article.Id))
+	fmt.Printf("Endpoint Hit: CreateNewArticle by id='%v'\n", article.ID)
+	w.Header().Set("Content-Type", "application/json")
+	found := findArticle(fmt.Sprint(article.ID))
 	if found == nil {
 		w.WriteHeader(200)
+		db.Create(&article)
 		Articles = append(Articles, article)
 		json.NewEncoder(w).Encode(article)
 	} else {
 		result := HttpError{
 			StatusCode: 400,
-			Message:    fmt.Sprintf("One article found by id: '%v'!", article.Id),
+			Message:    fmt.Sprintf("One article found by id: '%v'!", article.ID),
 		}
 		w.WriteHeader(404)
 		json.NewEncoder(w).Encode(result)
@@ -119,10 +99,12 @@ func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: deleteSingleArticle by id='%v'\n", id)
+	w.Header().Set("Content-Type", "application/json")
 	found := findArticle(id)
 	if found != nil {
 		article := found[0].ArticleObject
 		index := found[0].Index
+		db.Delete(&article)
 		w.WriteHeader(200)
 		Articles = append(Articles[:index], Articles[index+1:]...)
 		result := article
@@ -141,6 +123,7 @@ func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: updateSingleArticle by id='%v'\n", id)
+	w.Header().Set("Content-Type", "application/json")
 	found := findArticle(id)
 	if found != nil {
 		index := found[0].Index
@@ -148,7 +131,13 @@ func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
 		Articles = append(Articles[:index], Articles[index+1:]...)
 		reqBody, _ := ioutil.ReadAll(r.Body)
 		var article Article
-		json.Unmarshal(reqBody, &article)
+		var reqMap map[string]string
+		db.First(&article, id)
+		json.Unmarshal(reqBody, &reqMap)
+		article.Title = reqMap["Title"]
+		article.Desc = reqMap["Descriptions"]
+		article.Content = reqMap["Content"]
+		db.Save(&article)
 		Articles = append(Articles, article)
 		result := article
 		json.NewEncoder(w).Encode(result)
@@ -174,19 +163,8 @@ func handleRequests() {
 }
 
 func main() {
-	createTable(db, "articles", coloums)
+	models = perpareModels()
 	fmt.Println("Rest API v2.0 - Mux Routers")
-	book1984 := Article{Id: "0", Title: "1984", Desc: "Article of 1984 book", Content: "This book is wonderful"}
-	bookHuman := Article{Id: "1", Title: "Homo sapiens", Desc: "Article of Homo sapiens book", Content: "This book is so useful"}
-	Articles = []Article{book1984, bookHuman}
-	_, err := book1984.save()
-	if err != nil {
-		fmt.Printf("Error: '%v' !\n", err)
-	}
-	_, err = bookHuman.save()
-	if err != nil {
-		fmt.Printf("Error: '%v' !\n", err)
-	}
-	defer db.Close()
+	db.Find(&Articles)
 	handleRequests()
 }

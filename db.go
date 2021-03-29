@@ -1,10 +1,10 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 
-	_ "github.com/lib/pq"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 const (
@@ -13,49 +13,15 @@ const (
 	user     = "go_user"
 	password = "pag%5!%zhQ*cjGr^orjZfKC*V65HhPb5"
 	dbname   = "go_api"
-	coloums  = `id SERIAL CONSTRAINT firstkey PRIMARY KEY,
-	title       varchar(40) NOT NULL,
-	description varchar(128) NOT NULL,
-	content     varchar(512) NOT NULL,
-	create_at   timestamp DEFAULT now() NOT NULL,
-	update_at   timestamp DEFAULT now() NOT NULL`
 )
 
-func insertInto(db *sql.DB, tableName string, columns string, values string) (*sql.Rows, error) {
-	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s);", tableName, columns, values)
-	row, err := db.Query(query)
-	if err != nil {
-		fmt.Printf("Error: '%v' !\n", err)
-		return nil, err
-	}
-	defer row.Close()
-	fmt.Printf("Insert into table: '%v' !\n", row)
-	return row, nil
-}
-
-func createTable(db *sql.DB, tableName string, columns string) (*sql.Rows, error) {
-	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (%s);", tableName, columns)
-	row, err := db.Query(query)
-	if err != nil {
-		fmt.Printf("Error: '%v' !\n", err)
-		return nil, err
-	}
-	defer row.Close()
-	fmt.Printf("Create table: '%v' !\n", row)
-	return row, nil
-}
-
-func getDatabase() *sql.DB {
+func getDatabase() *gorm.DB {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s sslmode=disable",
+		"password=%s dbname=%s sslmode=disable TimeZone=Asia/Tehran",
 		host, port, user, password, dbname)
 
-	db, err := sql.Open("postgres", psqlInfo)
-	if err != nil {
-		panic(err)
-	}
-
-	err = db.Ping()
+	//db, err := sql.Open("postgres", psqlInfo)
+	db, err := gorm.Open(postgres.Open(psqlInfo), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
