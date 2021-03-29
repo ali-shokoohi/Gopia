@@ -10,11 +10,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type HttpError struct {
-	StatusCode int    `json:"status_code"`
-	Message    string `json:"message"`
-}
-
 // type Summarizer interface {
 // 	summarize() string
 // }
@@ -57,19 +52,16 @@ func returnSingleArticle(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: returnSingeArticle by id='%v'\n", id)
-	w.Header().Set("Content-Type", "application/json")
 	found := findArticle(id)
 	if found != nil {
 		result := found[0].ArticleObject
 		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(result)
 	} else {
-		result := HttpError{
-			StatusCode: 404,
-			Message:    fmt.Sprintf("No article found by id: '%v'!", id),
-		}
+		result := fmt.Sprintf("No article found by id: '%v'!", id)
 		w.WriteHeader(404)
-		json.NewEncoder(w).Encode(result)
+		http.Error(w, result, http.StatusBadRequest)
 	}
 }
 
@@ -78,20 +70,16 @@ func createNewArticle(w http.ResponseWriter, r *http.Request) {
 	var article Article
 	json.Unmarshal(reqBody, &article)
 	fmt.Printf("Endpoint Hit: CreateNewArticle by id='%v'\n", article.ID)
-	w.Header().Set("Content-Type", "application/json")
 	found := findArticle(fmt.Sprint(article.ID))
 	if found == nil {
 		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
 		db.Create(&article)
 		Articles = append(Articles, article)
 		json.NewEncoder(w).Encode(article)
 	} else {
-		result := HttpError{
-			StatusCode: 400,
-			Message:    fmt.Sprintf("One article found by id: '%v'!", article.ID),
-		}
-		w.WriteHeader(404)
-		json.NewEncoder(w).Encode(result)
+		result := fmt.Sprintf("One article found by id: '%v'!", article.ID)
+		http.Error(w, result, http.StatusBadRequest)
 	}
 }
 
@@ -99,23 +87,19 @@ func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: deleteSingleArticle by id='%v'\n", id)
-	w.Header().Set("Content-Type", "application/json")
 	found := findArticle(id)
 	if found != nil {
 		article := found[0].ArticleObject
 		index := found[0].Index
 		db.Delete(&article)
 		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
 		Articles = append(Articles[:index], Articles[index+1:]...)
 		result := article
 		json.NewEncoder(w).Encode(result)
 	} else {
-		result := HttpError{
-			StatusCode: 404,
-			Message:    fmt.Sprintf("No article found by id: '%v'!", id),
-		}
-		w.WriteHeader(404)
-		json.NewEncoder(w).Encode(result)
+		result := fmt.Sprintf("No article found by id: '%v'!", id)
+		http.Error(w, result, http.StatusBadRequest)
 	}
 }
 
@@ -123,11 +107,11 @@ func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: updateSingleArticle by id='%v'\n", id)
-	w.Header().Set("Content-Type", "application/json")
 	found := findArticle(id)
 	if found != nil {
 		index := found[0].Index
 		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
 		Articles = append(Articles[:index], Articles[index+1:]...)
 		reqBody, _ := ioutil.ReadAll(r.Body)
 		var article Article
@@ -142,12 +126,9 @@ func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
 		result := article
 		json.NewEncoder(w).Encode(result)
 	} else {
-		result := HttpError{
-			StatusCode: 404,
-			Message:    fmt.Sprintf("No article found by id: '%v'!", id),
-		}
-		w.WriteHeader(404)
-		json.NewEncoder(w).Encode(result)
+		result := fmt.Sprintf("No article found by id: '%v'!", id)
+		http.Error(w, result, http.StatusBadRequest)
+
 	}
 }
 
