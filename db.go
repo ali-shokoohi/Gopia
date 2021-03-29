@@ -2,21 +2,25 @@ package main
 
 import (
 	"fmt"
+	"os"
+
+	"github.com/joho/godotenv"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "go_user"
-	password = "pag%5!%zhQ*cjGr^orjZfKC*V65HhPb5"
-	dbname   = "go_api"
+var (
+	_        = godotenv.Load()
+	host     = os.Getenv("host")
+	port     = os.Getenv("port")
+	user     = os.Getenv("user")
+	password = os.Getenv("password")
+	dbname   = os.Getenv("dbname")
 )
 
 func getDatabase() *gorm.DB {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
+	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s "+
 		"password=%s dbname=%s sslmode=disable TimeZone=Asia/Tehran",
 		host, port, user, password, dbname)
 
