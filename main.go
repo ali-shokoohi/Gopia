@@ -140,7 +140,7 @@ func handleRequests() {
 	router.HandleFunc("/article/{id}", returnSingleArticle).Methods("GET")
 	router.HandleFunc("/article/{id}", deleteSingleArticle).Methods("DELETE")
 	router.HandleFunc("/article/{id}", updateSingleArticle).Methods("PUT")
-	log.Fatal(http.ListenAndServe(":10000", router))
+	log.Fatal(http.ListenAndServe(":8090", router))
 }
 
 func main() {
