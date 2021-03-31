@@ -1,0 +1,16 @@
+[Unit]
+Description=goapi
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5s
+User=USER
+WorkingDirectory=/home/USER/go/bin
+ExecStart=/home/USER/go/bin/go-rest-api
+# sudo mkdir -p /var/log/goapi
+StandardOutput=/var/log/goapi/good.log
+StandardError=/var/log/goapi/bad.log
+
+[Install]
+WantedBy=multi-user.target
