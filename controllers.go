@@ -10,15 +10,15 @@ import (
 )
 
 type FoundModel struct {
-	Index         int     `json:"Index"`
-	ArticleObject Article `json:"Article"`
+	Index       int
+	ModelObject interface{}
 }
 
 func findArticle(id string) []FoundModel {
 	var found []FoundModel
 	for index, article := range Articles {
 		if fmt.Sprint(article.ID) == id {
-			FoundModel := FoundModel{Index: index, ArticleObject: article}
+			FoundModel := FoundModel{Index: index, ModelObject: article}
 			found = append(found, FoundModel)
 			break
 		}
@@ -43,7 +43,7 @@ func returnSingleArticle(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Endpoint Hit: returnSingeArticle by id='%v'\n", id)
 	found := findArticle(id)
 	if found != nil {
-		result := found[0].ArticleObject
+		result := found[0].ModelObject
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(result)
@@ -78,7 +78,7 @@ func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Endpoint Hit: deleteSingleArticle by id='%v'\n", id)
 	found := findArticle(id)
 	if found != nil {
-		article := found[0].ArticleObject
+		article := found[0].ModelObject
 		index := found[0].Index
 		db.Delete(&article)
 		w.WriteHeader(200)
