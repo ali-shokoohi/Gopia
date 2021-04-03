@@ -9,17 +9,17 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type FoundArticle struct {
+type FoundModel struct {
 	Index         int     `json:"Index"`
 	ArticleObject Article `json:"Article"`
 }
 
-func findArticle(id string) []FoundArticle {
-	var found []FoundArticle
+func findArticle(id string) []FoundModel {
+	var found []FoundModel
 	for index, article := range Articles {
 		if fmt.Sprint(article.ID) == id {
-			foundArticle := FoundArticle{Index: index, ArticleObject: article}
-			found = append(found, foundArticle)
+			FoundModel := FoundModel{Index: index, ArticleObject: article}
+			found = append(found, FoundModel)
 			break
 		}
 	}
