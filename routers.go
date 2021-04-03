@@ -9,6 +9,7 @@ import (
 
 func handleRequests() {
 	router := mux.NewRouter().StrictSlash(true)
+	router.Use(urlMiddleWare)
 	router.HandleFunc("/", homePage)
 	router.HandleFunc("/article", returnAllArticles).Methods("GET")
 	router.HandleFunc("/article", createNewArticle).Methods("POST")
