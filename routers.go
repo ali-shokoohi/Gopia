@@ -11,6 +11,8 @@ func handleRequests() {
 	router := mux.NewRouter().StrictSlash(true)
 	// Show request URL
 	router.Use(urlMiddleWare)
+	// Basic Authentication middleware
+	router.Use(authMiddleWare)
 	// Router for / end point
 	router.HandleFunc("/", homePage)
 	// Routers for /article... end point
