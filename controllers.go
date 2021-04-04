@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -22,6 +24,14 @@ func findModel(id string, modelType string) []FoundModel {
 	switch modelType {
 	case "articles":
 		for index, model := range objects[modelType].([]Article) {
+			if fmt.Sprint(model.ID) == id {
+				FoundModel := FoundModel{Index: index, ModelObject: model}
+				found = append(found, FoundModel)
+				break
+			}
+		}
+	case "users":
+		for index, model := range objects[modelType].([]User) {
 			if fmt.Sprint(model.ID) == id {
 				FoundModel := FoundModel{Index: index, ModelObject: model}
 				found = append(found, FoundModel)
@@ -71,6 +81,7 @@ func createNewArticle(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		db.Create(&article)
 		Articles = append(Articles, article)
+		objects["articles"] = Articles
 		json.NewEncoder(w).Encode(article)
 	} else {
 		result := fmt.Sprintf("One article found by id: '%v'!", article.ID)
@@ -90,6 +101,7 @@ func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
 		Articles = append(Articles[:index], Articles[index+1:]...)
+		objects["articles"] = Articles
 		result := article
 		json.NewEncoder(w).Encode(result)
 	} else {
@@ -118,10 +130,112 @@ func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
 		article.Content = reqMap["Content"]
 		db.Save(&article)
 		Articles = append(Articles, article)
+		objects["articles"] = Articles
 		result := article
 		json.NewEncoder(w).Encode(result)
 	} else {
 		result := fmt.Sprintf("No article found by id: '%v'!", id)
+		http.Error(w, result, http.StatusBadRequest)
+
+	}
+}
+
+func returnAllUsers(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Endpoint Hit: returnAllUsers")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Users)
+}
+
+func returnSingleUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	fmt.Printf("Endpoint Hit: returnSingeUser by id='%v'\n", id)
+	found := findModel(id, "users")
+	if found != nil {
+		result := found[0].ModelObject
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(result)
+	} else {
+		result := fmt.Sprintf("No user found by id: '%v'!", id)
+		w.WriteHeader(404)
+		http.Error(w, result, http.StatusBadRequest)
+	}
+}
+
+func createNewUser(w http.ResponseWriter, r *http.Request) {
+	reqBody, _ := ioutil.ReadAll(r.Body)
+	var user User
+	json.Unmarshal(reqBody, &user)
+	fmt.Printf("Endpoint Hit: CreateNewUser by id='%v'\n", user.ID)
+	found := findModel(fmt.Sprint(user.ID), "users")
+	if found == nil {
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		hasher := md5.New()
+		hasher.Write([]byte(user.Password))
+		user.Password = hex.EncodeToString(hasher.Sum(nil))
+		db.Create(&user)
+		Users = append(Users, user)
+		objects["users"] = Users
+		json.NewEncoder(w).Encode(user)
+	} else {
+		result := fmt.Sprintf("One user found by id: '%v'!", user.ID)
+		http.Error(w, result, http.StatusBadRequest)
+	}
+}
+
+func deleteSingleUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	fmt.Printf("Endpoint Hit: deleteSingleUser by id='%v'\n", id)
+	found := findModel(id, "users")
+	if found != nil {
+		user := found[0].ModelObject
+		index := found[0].Index
+		db.Delete(&user)
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		Users = append(Users[:index], Users[index+1:]...)
+		objects["users"] = Users
+		result := user
+		json.NewEncoder(w).Encode(result)
+	} else {
+		result := fmt.Sprintf("No user found by id: '%v'!", id)
+		http.Error(w, result, http.StatusBadRequest)
+	}
+}
+
+func updateSingleUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	fmt.Printf("Endpoint Hit: updateSingleUser by id='%v'\n", id)
+	found := findModel(id, "users")
+	if found != nil {
+		index := found[0].Index
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		Users = append(Users[:index], Users[index+1:]...)
+		reqBody, _ := ioutil.ReadAll(r.Body)
+		var user User
+		var reqMap map[string]string
+		db.First(&user, id)
+		json.Unmarshal(reqBody, &reqMap)
+		hasher := md5.New()
+		hasher.Write([]byte(reqMap["password"]))
+		user.Password = hex.EncodeToString(hasher.Sum(nil))
+		user.FirstName = reqMap["first_name"]
+		user.LastName = reqMap["last_name"]
+		user.Email = reqMap["email"]
+		user.Age = reqMap["age"]
+		user.Username = reqMap["username"]
+		db.Save(&user)
+		Users = append(Users, user)
+		objects["users"] = Users
+		result := user
+		json.NewEncoder(w).Encode(result)
+	} else {
+		result := fmt.Sprintf("No user found by id: '%v'!", id)
 		http.Error(w, result, http.StatusBadRequest)
 
 	}
