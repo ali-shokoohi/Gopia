@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 func urlMiddleWare(handler http.Handler) http.Handler {
@@ -31,6 +32,9 @@ func authMiddleWare(handler http.Handler) http.Handler {
 		hashPass := hex.EncodeToString(hasher.Sum(nil))
 		for _, user := range Users {
 			if user.Username == reqUser && user.Password == hashPass {
+				// Set user in request
+				userURL := url.User(fmt.Sprint(user.ID))
+				r.URL.User = userURL
 				handler.ServeHTTP(w, r)
 				return
 			}
