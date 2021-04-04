@@ -34,6 +34,8 @@ var models map[string]interface{}
 var objects map[string]interface{}
 var objectsJsonMap map[string][]interface{}
 
+var objectsJson []byte
+
 func autoMigrate(models map[string]interface{}) {
 	for index, model := range models {
 		fmt.Printf("%s: %v\n", index, model)
@@ -43,7 +45,7 @@ func autoMigrate(models map[string]interface{}) {
 
 func reloadObjects() {
 	// Convert objects map to a []byte map
-	objectsJson, _ := json.Marshal(objects)
+	objectsJson, _ = json.Marshal(objects)
 	// Again convert to a string map
 	json.Unmarshal(objectsJson, &objectsJsonMap)
 }
