@@ -14,13 +14,19 @@ type FoundModel struct {
 	ModelObject interface{}
 }
 
-func findArticle(id string) []FoundModel {
+func findModel(id string, modelType string) []FoundModel {
 	var found []FoundModel
-	for index, article := range Articles {
-		if fmt.Sprint(article.ID) == id {
-			FoundModel := FoundModel{Index: index, ModelObject: article}
-			found = append(found, FoundModel)
-			break
+	// Will be better later!
+	// TODO: Make this better to detect types automatic...
+	// Like: objects[modelType].([]interface{}) with fields for all types
+	switch modelType {
+	case "articles":
+		for index, model := range objects[modelType].([]Article) {
+			if fmt.Sprint(model.ID) == id {
+				FoundModel := FoundModel{Index: index, ModelObject: model}
+				found = append(found, FoundModel)
+				break
+			}
 		}
 	}
 	return found
@@ -41,7 +47,7 @@ func returnSingleArticle(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: returnSingeArticle by id='%v'\n", id)
-	found := findArticle(id)
+	found := findModel(id, "articles")
 	if found != nil {
 		result := found[0].ModelObject
 		w.WriteHeader(200)
@@ -59,7 +65,7 @@ func createNewArticle(w http.ResponseWriter, r *http.Request) {
 	var article Article
 	json.Unmarshal(reqBody, &article)
 	fmt.Printf("Endpoint Hit: CreateNewArticle by id='%v'\n", article.ID)
-	found := findArticle(fmt.Sprint(article.ID))
+	found := findModel(fmt.Sprint(article.ID), "articles")
 	if found == nil {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
@@ -76,7 +82,7 @@ func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: deleteSingleArticle by id='%v'\n", id)
-	found := findArticle(id)
+	found := findModel(id, "articles")
 	if found != nil {
 		article := found[0].ModelObject
 		index := found[0].Index
@@ -96,7 +102,7 @@ func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: updateSingleArticle by id='%v'\n", id)
-	found := findArticle(id)
+	found := findModel(id, "articles")
 	if found != nil {
 		index := found[0].Index
 		w.WriteHeader(200)
