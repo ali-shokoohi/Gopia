@@ -17,11 +17,6 @@ type FoundModel struct {
 }
 
 func findModel(id string, modelType string) []FoundModel {
-	// Convert objects map to a []byte map
-	objectsJson, _ := json.Marshal(objects)
-	// Again convert to a string map
-	var objectsJsonMap map[string][]interface{}
-	json.Unmarshal(objectsJson, &objectsJsonMap)
 	var found []FoundModel
 	for index, model := range objectsJsonMap[modelType] {
 		if fmt.Sprint(model.(map[string]interface{})["ID"]) == id {
@@ -73,6 +68,7 @@ func createNewArticle(w http.ResponseWriter, r *http.Request) {
 		db.Create(&article)
 		Articles = append(Articles, article)
 		objects["articles"] = Articles
+		reloadObjects()
 		json.NewEncoder(w).Encode(article)
 	} else {
 		result := fmt.Sprintf("One article found by id: '%v'!", article.ID)
@@ -93,6 +89,7 @@ func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		Articles = append(Articles[:index], Articles[index+1:]...)
 		objects["articles"] = Articles
+		reloadObjects()
 		result := article
 		json.NewEncoder(w).Encode(result)
 	} else {
@@ -122,6 +119,7 @@ func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
 		db.Save(&article)
 		Articles = append(Articles, article)
 		objects["articles"] = Articles
+		reloadObjects()
 		result := article
 		json.NewEncoder(w).Encode(result)
 	} else {
@@ -169,6 +167,7 @@ func createNewUser(w http.ResponseWriter, r *http.Request) {
 		db.Create(&user)
 		Users = append(Users, user)
 		objects["users"] = Users
+		reloadObjects()
 		json.NewEncoder(w).Encode(user)
 	} else {
 		result := fmt.Sprintf("One user found by id: '%v'!", user.ID)
@@ -189,6 +188,7 @@ func deleteSingleUser(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		Users = append(Users[:index], Users[index+1:]...)
 		objects["users"] = Users
+		reloadObjects()
 		result := user
 		json.NewEncoder(w).Encode(result)
 	} else {
@@ -223,6 +223,7 @@ func updateSingleUser(w http.ResponseWriter, r *http.Request) {
 		db.Save(&user)
 		Users = append(Users, user)
 		objects["users"] = Users
+		reloadObjects()
 		result := user
 		json.NewEncoder(w).Encode(result)
 	} else {
