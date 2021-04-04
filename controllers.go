@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 )
@@ -65,9 +66,15 @@ func createNewArticle(w http.ResponseWriter, r *http.Request) {
 	if found == nil {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
+		userUrl := r.URL.User.String()
+		userId, _ := strconv.ParseUint(userUrl, 10, 64)
+		article.UserID = uint(userId)
 		db.Create(&article)
+		// Reload Users list
+		db.Preload("Articles").Find(&Users)
 		Articles = append(Articles, article)
 		objects["articles"] = Articles
+		objects["users"] = Users
 		reloadObjects()
 		json.NewEncoder(w).Encode(article)
 	} else {
@@ -88,7 +95,10 @@ func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
 		Articles = append(Articles[:index], Articles[index+1:]...)
+		// Reload Users list
+		db.Preload("Articles").Find(&Users)
 		objects["articles"] = Articles
+		objects["users"] = Users
 		reloadObjects()
 		result := article
 		json.NewEncoder(w).Encode(result)
@@ -117,8 +127,11 @@ func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
 		article.Desc = reqMap["Descriptions"]
 		article.Content = reqMap["Content"]
 		db.Save(&article)
+		// Reload Users list
+		db.Preload("Articles").Find(&Users)
 		Articles = append(Articles, article)
 		objects["articles"] = Articles
+		objects["users"] = Users
 		reloadObjects()
 		result := article
 		json.NewEncoder(w).Encode(result)
@@ -187,7 +200,10 @@ func deleteSingleUser(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
 		Users = append(Users[:index], Users[index+1:]...)
+		// Reload Articles list
+		db.Find(&Articles)
 		objects["users"] = Users
+		objects["articles"] = Articles
 		reloadObjects()
 		result := user
 		json.NewEncoder(w).Encode(result)
