@@ -17,26 +17,17 @@ type FoundModel struct {
 }
 
 func findModel(id string, modelType string) []FoundModel {
+	// Convert objects map to a []byte map
+	objectsJson, _ := json.Marshal(objects)
+	// Again convert to a string map
+	var objectsJsonMap map[string][]interface{}
+	json.Unmarshal(objectsJson, &objectsJsonMap)
 	var found []FoundModel
-	// Will be better later!
-	// TODO: Make this better to detect types automatic...
-	// Like: objects[modelType].([]interface{}) with fields for all types
-	switch modelType {
-	case "articles":
-		for index, model := range objects[modelType].([]Article) {
-			if fmt.Sprint(model.ID) == id {
-				FoundModel := FoundModel{Index: index, ModelObject: model}
-				found = append(found, FoundModel)
-				break
-			}
-		}
-	case "users":
-		for index, model := range objects[modelType].([]User) {
-			if fmt.Sprint(model.ID) == id {
-				FoundModel := FoundModel{Index: index, ModelObject: model}
-				found = append(found, FoundModel)
-				break
-			}
+	for index, model := range objectsJsonMap[modelType] {
+		if fmt.Sprint(model.(map[string]interface{})["ID"]) == id {
+			FoundModel := FoundModel{Index: index, ModelObject: model}
+			found = append(found, FoundModel)
+			break
 		}
 	}
 	return found
