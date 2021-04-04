@@ -14,18 +14,20 @@ type Article struct {
 	Title   string `gorm:"not null" json:"Title"`
 	Desc    string `gorm:"not null" json:"Descriptions"`
 	Content string `gorm:"not null" json:"Content"`
+	UserID  uint   `gorm:"default:1"`
 }
 
 var Articles []Article
 
 type User struct {
 	gorm.Model
-	FirstName string `gorm:"not null" json:"first_name"`
-	LastName  string `gorm:"not null" json:"last_name"`
-	Email     string `gorm:"not null" json:"email"`
-	Age       string `gorm:"not null" json:"age"`
-	Username  string `gorm:"not null" json:"username"`
-	Password  string `gorm:"not null" json:"password"`
+	FirstName string    `gorm:"not null" json:"first_name"`
+	LastName  string    `gorm:"not null" json:"last_name"`
+	Email     string    `gorm:"not null" json:"email"`
+	Age       string    `gorm:"not null" json:"age"`
+	Username  string    `gorm:"not null" json:"username"`
+	Password  string    `gorm:"not null" json:"password"`
+	Articles  []Article `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
 
 var Users []User
@@ -57,7 +59,7 @@ func perpareModels() (map[string]interface{}, map[string]interface{}) {
 	models["user"] = User{}
 	autoMigrate(models)
 	db.Find(&Articles)
-	db.Find(&Users)
+	db.Preload("Articles").Find(&Users)
 	objects["articles"] = Articles
 	objects["users"] = Users
 	reloadObjects()
