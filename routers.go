@@ -32,7 +32,7 @@ func handleRequests() {
 	// Get port from environments
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8000"
+		port = "8090"
 	}
 	fmt.Println("Listing at: 0.0.0.0:" + port)
 	log.Fatal(http.ListenAndServe(":"+port, router))
