@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -23,10 +24,10 @@ type User struct {
 	gorm.Model
 	FirstName string    `gorm:"not null" json:"first_name"`
 	LastName  string    `gorm:"not null" json:"last_name"`
-	Email     string    `gorm:"not null" json:"email"`
+	Email     string    `gorm:"not null;unique" json:"email"`
 	Age       string    `gorm:"not null" json:"age"`
-	Username  string    `gorm:"not null" json:"username"`
-	Password  string    `gorm:"not null" json:"password"`
+	Username  string    `gorm:"not null;unique" json:"username"`
+	Password  string    `gorm:"not null"`
 	Articles  []Article `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
 
@@ -37,6 +38,34 @@ var objects map[string]interface{}
 var objectsJsonMap map[string][]interface{}
 
 var objectsJson []byte
+
+//Validate incoming user details...
+func (user *User) Validate() (string, bool) {
+	if !strings.Contains(user.Email, "@") {
+		return "Email address is required", false
+	}
+	if len(user.Password) < 6 {
+		return "Strong password is required", false
+	}
+	//Email and Username must be unique
+	temp := &User{}
+	//check for errors and duplicate emails
+	err := db.Table("accounts").Where("email = ?", user.Email).First(temp).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return "Connection error. Please retry", false
+	}
+	if temp.Email != "" {
+		return "Email address already in use by another user.", false
+	}
+	errUser := db.Table("accounts").Where("username = ?", user.Username).First(temp).Error
+	if errUser != nil && errUser != gorm.ErrRecordNotFound {
+		return "Connection error. Please retry", false
+	}
+	if temp.Username != "" {
+		return "Username already in use by another user.", false
+	}
+	return "Requirement passed", true
+}
 
 func autoMigrate(models map[string]interface{}) {
 	for index, model := range models {
