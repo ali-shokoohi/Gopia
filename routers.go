@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 )
@@ -27,5 +29,11 @@ func handleRequests() {
 	router.HandleFunc("/user/{id}", returnSingleUser).Methods("GET")
 	router.HandleFunc("/user/{id}", deleteSingleUser).Methods("DELETE")
 	router.HandleFunc("/user/{id}", updateSingleUser).Methods("PUT")
-	log.Fatal(http.ListenAndServe(":8090", router))
+	// Get port from environments
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8000"
+	}
+	fmt.Println("Listing at: 0.0.0.0:" + port)
+	log.Fatal(http.ListenAndServe(":"+port, router))
 }
