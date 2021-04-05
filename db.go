@@ -21,7 +21,7 @@ var (
 
 func getDatabase() *gorm.DB {
 	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s "+
-		"password=%s dbname=%s sslmode=disable TimeZone=Asia/Tehran",
+		"password=%s dbname=%s sslmode=require TimeZone=Asia/Tehran",
 		host, port, user, password, dbname)
 
 	//db, err := sql.Open("postgres", psqlInfo)
