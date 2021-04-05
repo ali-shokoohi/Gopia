@@ -31,7 +31,7 @@ func authMiddleWare(handler http.Handler) http.Handler {
 		hasher.Write([]byte(reqPass))
 		hashPass := hex.EncodeToString(hasher.Sum(nil))
 		for _, user := range Users {
-			if user.Username == reqUser && user.Password == hashPass {
+			if user.username == reqUser && user.password == hashPass {
 				// Set user in request
 				userURL := url.User(fmt.Sprint(user.ID))
 				r.URL.User = userURL

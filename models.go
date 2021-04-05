@@ -26,8 +26,8 @@ type User struct {
 	LastName  string    `gorm:"not null" json:"last_name"`
 	Email     string    `gorm:"not null;unique" json:"email"`
 	Age       string    `gorm:"not null" json:"age"`
-	Username  string    `gorm:"not null;unique" json:"username"`
-	Password  string    `gorm:"not null"`
+	username  string    `gorm:"not null;unique"`
+	password  string    `gorm:"not null"`
 	Articles  []Article `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
 
@@ -44,7 +44,7 @@ func (user *User) Validate() (string, bool) {
 	if !strings.Contains(user.Email, "@") {
 		return "Email address is required", false
 	}
-	if len(user.Password) < 6 {
+	if len(user.password) < 6 {
 		return "Strong password is required", false
 	}
 	//Email and Username must be unique
@@ -57,11 +57,11 @@ func (user *User) Validate() (string, bool) {
 	if temp.Email != "" {
 		return "Email address already in use by another user.", false
 	}
-	errUser := db.Table("accounts").Where("username = ?", user.Username).First(temp).Error
+	errUser := db.Table("accounts").Where("username = ?", user.username).First(temp).Error
 	if errUser != nil && errUser != gorm.ErrRecordNotFound {
 		return "Connection error. Please retry", false
 	}
-	if temp.Username != "" {
+	if temp.username != "" {
 		return "Username already in use by another user.", false
 	}
 	return "Requirement passed", true

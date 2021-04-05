@@ -175,8 +175,8 @@ func createNewUser(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
 		hasher := md5.New()
-		hasher.Write([]byte(user.Password))
-		user.Password = hex.EncodeToString(hasher.Sum(nil))
+		hasher.Write([]byte(user.password))
+		user.password = hex.EncodeToString(hasher.Sum(nil))
 		db.Create(&user)
 		Users = append(Users, user)
 		objects["users"] = Users
@@ -230,12 +230,12 @@ func updateSingleUser(w http.ResponseWriter, r *http.Request) {
 		json.Unmarshal(reqBody, &reqMap)
 		hasher := md5.New()
 		hasher.Write([]byte(reqMap["password"]))
-		user.Password = hex.EncodeToString(hasher.Sum(nil))
+		user.password = hex.EncodeToString(hasher.Sum(nil))
 		user.FirstName = reqMap["first_name"]
 		user.LastName = reqMap["last_name"]
 		user.Email = reqMap["email"]
 		user.Age = reqMap["age"]
-		user.Username = reqMap["username"]
+		user.username = reqMap["username"]
 		db.Save(&user)
 		Users = append(Users, user)
 		objects["users"] = Users
