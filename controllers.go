@@ -1,8 +1,6 @@
 package main
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -230,15 +228,17 @@ func updateSingleUser(w http.ResponseWriter, r *http.Request) {
 		var reqMap map[string]string
 		db.First(&user, id)
 		json.Unmarshal(reqBody, &reqMap)
-		hasher := md5.New()
-		hasher.Write([]byte(reqMap["Password"]))
-		user.Password = hex.EncodeToString(hasher.Sum(nil))
 		user.FirstName = reqMap["first_name"]
 		user.LastName = reqMap["last_name"]
 		user.Email = reqMap["email"]
 		user.Age = reqMap["age"]
-		user.Username = reqMap["Username"]
-		db.Save(&user)
+		user.Username = reqMap["username"]
+		user.Password = reqMap["password"]
+		res, ok := user.Update()
+		if !ok {
+			http.Error(w, res, http.StatusBadRequest)
+			return
+		}
 		Users = append(Users, user)
 		objects["users"] = Users
 		reloadObjects()
