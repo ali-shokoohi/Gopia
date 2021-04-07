@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"gorm.io/gorm"
 )
 
@@ -34,6 +35,14 @@ type User struct {
 }
 
 var Users []User
+
+/*
+JWT claims struct
+*/
+type Token struct {
+	UserId uint
+	jwt.StandardClaims
+}
 
 var models map[string]interface{}
 var objects map[string]interface{}
