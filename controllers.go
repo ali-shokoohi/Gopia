@@ -175,9 +175,6 @@ func createNewUser(w http.ResponseWriter, r *http.Request) {
 	if found == nil {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
-		hasher := md5.New()
-		hasher.Write([]byte(user.Password))
-		user.Password = hex.EncodeToString(hasher.Sum(nil))
 		res, ok := user.Create()
 		if !ok {
 			http.Error(w, res, http.StatusBadRequest)

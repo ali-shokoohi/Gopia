@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -71,6 +73,9 @@ func (user *User) Create() (string, bool) {
 	if resp, ok := user.Validate(); !ok {
 		return resp, false
 	}
+	hasher := md5.New()
+	hasher.Write([]byte(user.Password))
+	user.Password = hex.EncodeToString(hasher.Sum(nil))
 	db.Create(user)
 	return "Account has been created", true
 }
