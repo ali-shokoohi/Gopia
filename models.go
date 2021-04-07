@@ -88,6 +88,24 @@ func (user *User) Update() (string, bool) {
 	return "Account has been updated", true
 }
 
+func (user User) MarshalJSON() ([]byte, error) {
+	var tmp struct {
+		ID        uint
+		FirstName string    `json:"first_name"`
+		LastName  string    `json:"last_name"`
+		Email     string    `json:"email"`
+		Age       string    `json:"age"`
+		Articles  []Article `json:"articles"`
+	}
+	tmp.ID = user.ID
+	tmp.FirstName = user.FirstName
+	tmp.LastName = user.LastName
+	tmp.Email = user.Email
+	tmp.Age = user.Age
+	tmp.Articles = user.Articles
+	return json.Marshal(&tmp)
+}
+
 func autoMigrate(models map[string]interface{}) {
 	for index, model := range models {
 		fmt.Printf("%s: %v\n", index, model)
