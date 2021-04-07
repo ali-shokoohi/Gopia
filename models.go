@@ -26,8 +26,8 @@ type User struct {
 	LastName  string    `gorm:"not null" json:"last_name"`
 	Email     string    `gorm:"not null;unique" json:"email"`
 	Age       string    `gorm:"not null" json:"age"`
-	username  string    `gorm:"not null;unique"`
-	password  string    `gorm:"not null"`
+	Username  string    `gorm:"not null;unique"`
+	Password  string    `gorm:"not null"`
 	Articles  []Article `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
 
@@ -44,27 +44,35 @@ func (user *User) Validate() (string, bool) {
 	if !strings.Contains(user.Email, "@") {
 		return "Email address is required", false
 	}
-	if len(user.password) < 6 {
-		return "Strong password is required", false
+	if len(user.Password) < 6 {
+		return "Strong Password is required", false
 	}
 	//Email and Username must be unique
 	temp := &User{}
 	//check for errors and duplicate emails
-	err := db.Table("accounts").Where("email = ?", user.Email).First(temp).Error
+	err := db.Table("users").Where("email = ?", user.Email).First(temp).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return "Connection error. Please retry", false
 	}
 	if temp.Email != "" {
 		return "Email address already in use by another user.", false
 	}
-	errUser := db.Table("accounts").Where("username = ?", user.username).First(temp).Error
+	errUser := db.Table("users").Where("Username = ?", user.Username).First(temp).Error
 	if errUser != nil && errUser != gorm.ErrRecordNotFound {
 		return "Connection error. Please retry", false
 	}
-	if temp.username != "" {
+	if temp.Username != "" {
 		return "Username already in use by another user.", false
 	}
 	return "Requirement passed", true
+}
+
+func (user *User) Create() (string, bool) {
+	if resp, ok := user.Validate(); !ok {
+		return resp, false
+	}
+	db.Create(user)
+	return "Account has been created", true
 }
 
 func autoMigrate(models map[string]interface{}) {

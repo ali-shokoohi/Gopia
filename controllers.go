@@ -61,6 +61,7 @@ func createNewArticle(w http.ResponseWriter, r *http.Request) {
 	reqBody, _ := ioutil.ReadAll(r.Body)
 	var article Article
 	json.Unmarshal(reqBody, &article)
+	fmt.Printf("The fucking id is: %v\n", article.ID)
 	fmt.Printf("Endpoint Hit: CreateNewArticle by id='%v'\n", article.ID)
 	found := findModel(fmt.Sprint(article.ID), "articles")
 	if found == nil {
@@ -175,9 +176,13 @@ func createNewUser(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
 		hasher := md5.New()
-		hasher.Write([]byte(user.password))
-		user.password = hex.EncodeToString(hasher.Sum(nil))
-		db.Create(&user)
+		hasher.Write([]byte(user.Password))
+		user.Password = hex.EncodeToString(hasher.Sum(nil))
+		res, ok := user.Create()
+		if !ok {
+			http.Error(w, res, http.StatusBadRequest)
+			return
+		}
 		Users = append(Users, user)
 		objects["users"] = Users
 		reloadObjects()
@@ -229,13 +234,13 @@ func updateSingleUser(w http.ResponseWriter, r *http.Request) {
 		db.First(&user, id)
 		json.Unmarshal(reqBody, &reqMap)
 		hasher := md5.New()
-		hasher.Write([]byte(reqMap["password"]))
-		user.password = hex.EncodeToString(hasher.Sum(nil))
+		hasher.Write([]byte(reqMap["Password"]))
+		user.Password = hex.EncodeToString(hasher.Sum(nil))
 		user.FirstName = reqMap["first_name"]
 		user.LastName = reqMap["last_name"]
 		user.Email = reqMap["email"]
 		user.Age = reqMap["age"]
-		user.username = reqMap["username"]
+		user.Username = reqMap["Username"]
 		db.Save(&user)
 		Users = append(Users, user)
 		objects["users"] = Users
