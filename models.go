@@ -76,8 +76,16 @@ func (user *User) Create() (string, bool) {
 	hasher := md5.New()
 	hasher.Write([]byte(user.Password))
 	user.Password = hex.EncodeToString(hasher.Sum(nil))
-	db.Create(user)
+	db.Create(&user)
 	return "Account has been created", true
+}
+
+func (user *User) Update() (string, bool) {
+	hasher := md5.New()
+	hasher.Write([]byte(user.Password))
+	user.Password = hex.EncodeToString(hasher.Sum(nil))
+	db.Save(&user)
+	return "Account has been updated", true
 }
 
 func autoMigrate(models map[string]interface{}) {
