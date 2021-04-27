@@ -1,12 +1,16 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 )
 
@@ -270,4 +274,35 @@ func updateSingleUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, result, http.StatusBadRequest)
 
 	}
+}
+
+func loginUser(w http.ResponseWriter, r *http.Request) {
+	reqBody, _ := ioutil.ReadAll(r.Body)
+	var reqMap map[string]string
+	json.Unmarshal(reqBody, &reqMap)
+	reqUser := reqMap["username"]
+	reqPass := reqMap["password"]
+	hasher := md5.New()
+	hasher.Write([]byte(reqPass))
+	hashPass := hex.EncodeToString(hasher.Sum(nil))
+	for _, user := range Users {
+		if user.Username == reqUser && user.Password == hashPass {
+			// Set user in request
+			tk := &Token{UserId: user.ID}
+			token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
+			tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
+			user.Token = tokenString //Store the token in the response
+			w.WriteHeader(200)
+			w.Header().Set("Content-Type", "application/json")
+			var result struct {
+				Status string `json:"status"`
+				Token  string `json:"token"`
+			}
+			result.Status = "success"
+			result.Token = user.Token
+			json.NewEncoder(w).Encode(result)
+			return
+		}
+	}
+	http.Error(w, "Access Dinied!", http.StatusForbidden)
 }
