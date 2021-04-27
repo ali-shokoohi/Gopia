@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strconv"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
@@ -68,8 +67,7 @@ func createNewArticle(w http.ResponseWriter, r *http.Request) {
 	if found == nil {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
-		userUrl := r.URL.User.String()
-		userId, _ := strconv.ParseUint(userUrl, 10, 64)
+		userId := r.Context().Value("user").(uint)
 		article.UserID = uint(userId)
 		db.Create(&article)
 		// Reload Users list
