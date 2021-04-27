@@ -63,7 +63,6 @@ func createNewArticle(w http.ResponseWriter, r *http.Request) {
 	reqBody, _ := ioutil.ReadAll(r.Body)
 	var article Article
 	json.Unmarshal(reqBody, &article)
-	fmt.Printf("The fucking id is: %v\n", article.ID)
 	fmt.Printf("Endpoint Hit: CreateNewArticle by id='%v'\n", article.ID)
 	found := findModel(fmt.Sprint(article.ID), "articles")
 	if found == nil {
