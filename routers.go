@@ -15,6 +15,8 @@ func handleRequests() {
 	router.Use(urlMiddleWare)
 	// Basic Authentication middleware
 	//router.Use(authMiddleWare)
+	// JWT Authentication middleware
+	router.Use(jwtMiddleWare)
 	// Router for / end point
 	router.HandleFunc("/", homePage)
 	// Routers for /article... end point
