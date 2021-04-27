@@ -33,7 +33,7 @@ type User struct {
 	Username  string    `gorm:"not null;unique"`
 	Password  string    `gorm:"not null"`
 	Articles  []Article `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	Token     string    `gorm:"" json:"token"`
+	Token     string    `gorm:"-" sql:"-" json:"token"`
 }
 
 var Users []User
