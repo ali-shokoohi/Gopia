@@ -14,7 +14,7 @@ func handleRequests() {
 	// Show request URL
 	router.Use(urlMiddleWare)
 	// Basic Authentication middleware
-	router.Use(authMiddleWare)
+	//router.Use(authMiddleWare)
 	// Router for / end point
 	router.HandleFunc("/", homePage)
 	// Routers for /article... end point
@@ -26,7 +26,7 @@ func handleRequests() {
 	// Routers for /user... end point
 	router.HandleFunc("/user", returnAllUsers).Methods("GET")
 	router.HandleFunc("/user/login", loginUser).Methods("GET")
-	router.HandleFunc("/user", createNewUser).Methods("POST")
+	router.HandleFunc("/user/new", createNewUser).Methods("POST")
 	router.HandleFunc("/user/{id}", returnSingleUser).Methods("GET")
 	router.HandleFunc("/user/{id}", deleteSingleUser).Methods("DELETE")
 	router.HandleFunc("/user/{id}", updateSingleUser).Methods("PUT")
