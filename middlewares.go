@@ -54,21 +54,30 @@ func jwtMiddleWare(handler http.Handler) http.Handler {
 		}
 		notAuth := []string{"/user/new", "/user/login"} //List of endpoints that doesn't require auth
 		requestPath := r.URL.Path                       //current request path
+		necessary := [1]bool{true}
 		//check if request does not need authentication, serve the request if it doesn't need it
 		for _, value := range notAuth {
 			if value == requestPath {
-				handler.ServeHTTP(w, r)
-				return
+				necessary[0] = false
+				break
 			}
 		}
 		tokenHeader := r.Header.Get("Authorization") //Grab the token from the header
-		if tokenHeader == "" {                       //Token is missing, returns with error code 403 Unauthorized
+		if tokenHeader == "" {
+			if !necessary[0] {
+				handler.ServeHTTP(w, r)
+				return
+			} //Token is missing, returns with error code 403 Unauthorized
 			http.Error(w, "Missing auth token", http.StatusForbidden)
 			return
 		}
 
 		splitted := strings.Split(tokenHeader, " ") //The token normally comes in format `Bearer {token-body}`, we check if the retrieved token matched this requirement
 		if len(splitted) != 2 {
+			if !necessary[0] {
+				handler.ServeHTTP(w, r)
+				return
+			}
 			http.Error(w, "Invalid/Malformed auth token", http.StatusForbidden)
 			return
 		}
@@ -80,10 +89,18 @@ func jwtMiddleWare(handler http.Handler) http.Handler {
 			return []byte(os.Getenv("token_password")), nil
 		})
 		if err != nil { //Malformed token, returns with http code 403 as usual
+			if !necessary[0] {
+				handler.ServeHTTP(w, r)
+				return
+			}
 			http.Error(w, "Malformed authentication token", http.StatusForbidden)
 			return
 		}
 		if !token.Valid { //Token is invalid, maybe not signed on this server
+			if !necessary[0] {
+				handler.ServeHTTP(w, r)
+				return
+			}
 			http.Error(w, "Token is not valid.", http.StatusForbidden)
 			return
 		}
