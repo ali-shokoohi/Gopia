@@ -34,6 +34,7 @@ type User struct {
 	Password  string    `gorm:"not null"`
 	Articles  []Article `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Token     string    `gorm:"-" sql:"-" json:"token"`
+	Admin     bool      `gorm:"not null; default:false" json:"admin"`
 }
 
 var Users []User
@@ -113,6 +114,7 @@ func (user User) MarshalJSON() ([]byte, error) {
 		LastName  string    `json:"last_name"`
 		Email     string    `json:"email"`
 		Age       string    `json:"age"`
+		Admin     bool      `json:"admin"`
 		Articles  []Article `json:"articles"`
 	}
 	tmp.ID = user.ID
@@ -120,6 +122,7 @@ func (user User) MarshalJSON() ([]byte, error) {
 	tmp.LastName = user.LastName
 	tmp.Email = user.Email
 	tmp.Age = user.Age
+	tmp.Admin = user.Admin
 	tmp.Articles = user.Articles
 	return json.Marshal(&tmp)
 }
