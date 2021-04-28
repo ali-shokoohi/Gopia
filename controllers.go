@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
@@ -84,6 +85,9 @@ func createNewArticle(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
+	senderId := r.Context().Value("user").(uint)
+	senderFound := findModel(fmt.Sprint(senderId), "users")
+	sender := senderFound[0].ModelObject.(map[string]interface{})
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: deleteSingleArticle by id='%v'\n", id)
@@ -91,6 +95,10 @@ func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 	if found != nil {
 		article := found[0].ModelObject
 		index := found[0].Index
+		if senderId != article.(Article).UserID && sender["admin"] == false {
+			http.Error(w, "Permission Dinied!", http.StatusForbidden)
+			return
+		}
 		db.Delete(&article)
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
@@ -109,6 +117,9 @@ func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
+	senderId := r.Context().Value("user").(uint)
+	senderFound := findModel(fmt.Sprint(senderId), "users")
+	sender := senderFound[0].ModelObject.(map[string]interface{})
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: updateSingleArticle by id='%v'\n", id)
@@ -117,15 +128,19 @@ func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
 		index := found[0].Index
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
-		Articles = append(Articles[:index], Articles[index+1:]...)
 		reqBody, _ := ioutil.ReadAll(r.Body)
 		var article Article
 		var reqMap map[string]string
 		db.First(&article, id)
 		json.Unmarshal(reqBody, &reqMap)
+		if senderId != article.UserID && sender["admin"] == false {
+			http.Error(w, "Permission Dinied!", http.StatusForbidden)
+			return
+		}
 		article.Title = reqMap["Title"]
 		article.Desc = reqMap["Descriptions"]
 		article.Content = reqMap["Content"]
+		Articles = append(Articles[:index], Articles[index+1:]...)
 		db.Save(&article)
 		// Reload Users list
 		db.Preload("Articles").Find(&Users)
@@ -224,9 +239,17 @@ func createNewUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteSingleUser(w http.ResponseWriter, r *http.Request) {
+	senderId := r.Context().Value("user").(int)
+	senderFound := findModel(fmt.Sprint(senderId), "users")
+	sender := senderFound[0].ModelObject.(map[string]interface{})
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: deleteSingleUser by id='%v'\n", id)
+	// Only owners or admins can do this
+	if strconv.Itoa(senderId) != id && sender["admin"] == false {
+		http.Error(w, "Permission Dinied!", http.StatusForbidden)
+		return
+	}
 	found := findModel(id, "users")
 	if found != nil {
 		user := found[0].ModelObject
@@ -249,9 +272,17 @@ func deleteSingleUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateSingleUser(w http.ResponseWriter, r *http.Request) {
+	senderId := r.Context().Value("user").(int)
+	senderFound := findModel(fmt.Sprint(senderId), "users")
+	sender := senderFound[0].ModelObject.(map[string]interface{})
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: updateSingleUser by id='%v'\n", id)
+	// Only owners or admins can do this
+	if strconv.Itoa(senderId) != id && sender["admin"] == false {
+		http.Error(w, "Permission Dinied!", http.StatusForbidden)
+		return
+	}
 	found := findModel(id, "users")
 	if found != nil {
 		index := found[0].Index
@@ -260,15 +291,18 @@ func updateSingleUser(w http.ResponseWriter, r *http.Request) {
 		Users = append(Users[:index], Users[index+1:]...)
 		reqBody, _ := ioutil.ReadAll(r.Body)
 		var user User
-		var reqMap map[string]string
+		var reqMap map[string]interface{}
 		db.First(&user, id)
 		json.Unmarshal(reqBody, &reqMap)
-		user.FirstName = reqMap["first_name"]
-		user.LastName = reqMap["last_name"]
-		user.Email = reqMap["email"]
-		user.Age = reqMap["age"]
-		user.Username = reqMap["username"]
-		user.Password = reqMap["password"]
+		user.FirstName = reqMap["first_name"].(string)
+		user.LastName = reqMap["last_name"].(string)
+		user.Email = reqMap["email"].(string)
+		user.Age = reqMap["age"].(string)
+		user.Username = reqMap["username"].(string)
+		user.Password = reqMap["password"].(string)
+		if sender["admin"] == true {
+			user.Admin = reqMap["admin"].(bool)
+		}
 		res, ok := user.Update()
 		if !ok {
 			http.Error(w, res, http.StatusBadRequest)
