@@ -172,6 +172,17 @@ func createNewUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Endpoint Hit: CreateNewUser by id='%v'\n", user.ID)
 	found := findModel(fmt.Sprint(user.ID), "users")
 	if found == nil {
+		// Only admins can create super users!
+		senderId := r.Context().Value("user")
+		if senderId == nil {
+			user.Admin = false
+		} else {
+			senderFound := findModel(fmt.Sprint(senderId.(uint)), "users")
+			sender := senderFound[0].ModelObject.(map[string]interface{})
+			if sender["admin"] == false {
+				user.Admin = false
+			}
+		}
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
 		res, ok := user.Create()
@@ -191,6 +202,7 @@ func createNewUser(w http.ResponseWriter, r *http.Request) {
 			Age       string    `json:"age"`
 			Username  string    `json:"username"`
 			Password  string    `json:"password"`
+			Admin     bool      `json:"admin"`
 			Token     string    `json:"token"`
 			Articles  []Article `json:"articles"`
 		}
@@ -201,6 +213,7 @@ func createNewUser(w http.ResponseWriter, r *http.Request) {
 		tmpUser.Username = user.Username
 		tmpUser.Password = user.Password
 		tmpUser.Age = user.Age
+		tmpUser.Admin = user.Admin
 		tmpUser.Token = user.Token
 		tmpUser.Articles = user.Articles
 		json.NewEncoder(w).Encode(tmpUser)
