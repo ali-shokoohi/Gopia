@@ -47,6 +47,9 @@ func urlMiddleWare(handler http.Handler) http.Handler {
 
 func jwtMiddleWare(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Remove all request user context
+		ctx := context.WithValue(r.Context(), "user", nil)
+		r = r.WithContext(ctx)
 		// Ignore GET method
 		if r.Method == "GET" {
 			handler.ServeHTTP(w, r)
@@ -106,7 +109,7 @@ func jwtMiddleWare(handler http.Handler) http.Handler {
 		}
 		//Everything went well, proceed with the request and set the caller to the user retrieved from the parsed token
 		fmt.Printf("User %v", tk.UserId) //Useful for monitoring
-		ctx := context.WithValue(r.Context(), "user", tk.UserId)
+		ctx = context.WithValue(r.Context(), "user", tk.UserId)
 		r = r.WithContext(ctx)
 		handler.ServeHTTP(w, r) //proceed in the middleware chain!
 	})
