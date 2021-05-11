@@ -93,9 +93,9 @@ func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Endpoint Hit: deleteSingleArticle by id='%v'\n", id)
 	found := findModel(id, "articles")
 	if found != nil {
-		article := found[0].ModelObject
+		article := found[0].ModelObject.(map[string]interface{})
 		index := found[0].Index
-		if senderId != article.(Article).UserID && sender["admin"] == false {
+		if int(senderId) != int(article["UserID"].(float64)) && sender["admin"] == false {
 			http.Error(w, "Permission Dinied!", http.StatusForbidden)
 			return
 		}
