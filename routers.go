@@ -23,6 +23,7 @@ func handleRequests() {
 	router.HandleFunc("/article", skipCORS).Methods("OPTIONS")
 	router.HandleFunc("/user", skipCORS).Methods("OPTIONS")
 	router.HandleFunc("/user/login", skipCORS).Methods("OPTIONS")
+	router.HandleFunc("/user/new", skipCORS).Methods("OPTIONS")
 	// Router for / end point
 	router.HandleFunc("/", homePage)
 	// Routers for /article... end point
