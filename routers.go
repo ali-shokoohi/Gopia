@@ -29,7 +29,7 @@ func handleRequests() {
 	router.HandleFunc("/article/{id}", updateSingleArticle).Methods("PUT")
 	// Routers for /user... end point
 	router.HandleFunc("/user", returnAllUsers).Methods("GET")
-	router.HandleFunc("/user/login", loginUser).Methods("GET")
+	router.HandleFunc("/user/login", loginUser).Methods("POST")
 	router.HandleFunc("/user/new", createNewUser).Methods("POST")
 	router.HandleFunc("/user/{id}", returnSingleUser).Methods("GET")
 	router.HandleFunc("/user/{id}", deleteSingleUser).Methods("DELETE")
