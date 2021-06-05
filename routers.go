@@ -11,14 +11,18 @@ import (
 
 func handleRequests() {
 	router := mux.NewRouter().StrictSlash(true)
-	// Show request URL
-	router.Use(urlMiddleWare)
 	// Enable CORS for all endpoints
 	router.Use(CORSMiddleWare)
+	// Show request URL
+	router.Use(urlMiddleWare)
 	// Basic Authentication middleware
 	//router.Use(authMiddleWare)
 	// JWT Authentication middleware
 	router.Use(jwtMiddleWare)
+	// Route for all end points to skip OPTIONS method for CORS
+	router.HandleFunc("/article", skipCORS).Methods("OPTIONS")
+	router.HandleFunc("/user", skipCORS).Methods("OPTIONS")
+	router.HandleFunc("/user/login", skipCORS).Methods("OPTIONS")
 	// Router for / end point
 	router.HandleFunc("/", homePage)
 	// Routers for /article... end point
