@@ -13,6 +13,8 @@ func handleRequests() {
 	router := mux.NewRouter().StrictSlash(true)
 	// Show request URL
 	router.Use(urlMiddleWare)
+	// Enable CORS for all endpoints
+	router.Use(CORSMiddleWare)
 	// Basic Authentication middleware
 	//router.Use(authMiddleWare)
 	// JWT Authentication middleware
