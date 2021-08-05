@@ -39,6 +39,12 @@ func handleRequests() {
 	router.HandleFunc("/user/{id}", returnSingleUser).Methods("GET")
 	router.HandleFunc("/user/{id}", deleteSingleUser).Methods("DELETE")
 	router.HandleFunc("/user/{id}", updateSingleUser).Methods("PUT")
+	// Routers for /comment... end point
+	router.HandleFunc("/comment", returnAllComments).Methods("GET")
+	router.HandleFunc("/comment", createNewComment).Methods("POST")
+	router.HandleFunc("/comment/{id}", returnSingleComment).Methods("GET")
+	router.HandleFunc("/comment/{id}", deleteSingleComment).Methods("DELETE")
+	router.HandleFunc("/comment/{id}", updateSingleComment).Methods("PUT")
 	// Get port from environments
 	port := os.Getenv("PORT")
 	if port == "" {
