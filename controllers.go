@@ -82,7 +82,7 @@ func createNewArticle(w http.ResponseWriter, r *http.Request) {
 		article.UserID = uint(userId)
 		db.Create(&article)
 		// Reload Users list
-		db.Preload("Articles").Find(&Users)
+		db.Preload("Articles").Preload("Comments").Find(&Users)
 		Articles = append(Articles, article)
 		objects["articles"] = Articles
 		objects["users"] = Users
@@ -114,7 +114,7 @@ func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		Articles = append(Articles[:index], Articles[index+1:]...)
 		// Reload Users list
-		db.Preload("Articles").Find(&Users)
+		db.Preload("Articles").Preload("Comments").Find(&Users)
 		objects["articles"] = Articles
 		objects["users"] = Users
 		reloadObjects()
@@ -153,7 +153,7 @@ func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
 		Articles = append(Articles[:index], Articles[index+1:]...)
 		db.Save(&article)
 		// Reload Users list
-		db.Preload("Articles").Find(&Users)
+		db.Preload("Articles").Preload("Comments").Find(&Users)
 		Articles = append(Articles, article)
 		objects["articles"] = Articles
 		objects["users"] = Users
@@ -359,4 +359,129 @@ func loginUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	http.Error(w, "Access Dinied!", http.StatusForbidden)
+}
+
+func returnAllComments(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Endpoint Hit: returnAllComments")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Comments)
+}
+
+func returnSingleComment(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	fmt.Printf("Endpoint Hit: returnSingeComment by id='%v'\n", id)
+	found := findModel(id, "comments")
+	if found != nil {
+		result := found[0].ModelObject
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(result)
+	} else {
+		result := fmt.Sprintf("No comment found by id: '%v'!", id)
+		w.WriteHeader(404)
+		http.Error(w, result, http.StatusBadRequest)
+	}
+}
+
+func createNewComment(w http.ResponseWriter, r *http.Request) {
+	reqBody, _ := ioutil.ReadAll(r.Body)
+	var comment Comment
+	json.Unmarshal(reqBody, &comment)
+	fmt.Printf("Endpoint Hit: CreateNewComment by id='%v'\n", comment.ID)
+	found := findModel(fmt.Sprint(comment.ID), "comments")
+	if found == nil {
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		userId := r.Context().Value("user").(uint)
+		comment.UserID = uint(userId)
+		db.Create(&comment)
+		// Reload Users list
+		db.Preload("Articles").Preload("Comments").Find(&Users)
+		db.Preload("Comments").Find(&Articles)
+		Comments = append(Comments, comment)
+		objects["comments"] = Comments
+		objects["articles"] = Articles
+		objects["users"] = Users
+		reloadObjects()
+		json.NewEncoder(w).Encode(comment)
+	} else {
+		result := fmt.Sprintf("One comment found by id: '%v'!", comment.ID)
+		http.Error(w, result, http.StatusBadRequest)
+	}
+}
+
+func deleteSingleComment(w http.ResponseWriter, r *http.Request) {
+	senderId := r.Context().Value("user").(uint)
+	senderFound := findModel(fmt.Sprint(senderId), "users")
+	sender := senderFound[0].ModelObject.(map[string]interface{})
+	vars := mux.Vars(r)
+	id := vars["id"]
+	fmt.Printf("Endpoint Hit: deleteSingleComment by id='%v'\n", id)
+	found := findModel(id, "comments")
+	if found != nil {
+		comment := found[0].ModelObject.(map[string]interface{})
+		index := found[0].Index
+		if int(senderId) != int(comment["UserID"].(float64)) && sender["admin"] == false {
+			http.Error(w, "Permission Dinied!", http.StatusForbidden)
+			return
+		}
+		db.Delete(&comment)
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		Comments = append(Comments[:index], Comments[index+1:]...)
+		// Reload Users list
+		db.Preload("Articles").Preload("Comments").Find(&Users)
+		db.Preload("Comments").Find(&Articles)
+		objects["comments"] = Comments
+		objects["articles"] = Articles
+		objects["users"] = Users
+		reloadObjects()
+		result := comment
+		json.NewEncoder(w).Encode(result)
+	} else {
+		result := fmt.Sprintf("No comment found by id: '%v'!", id)
+		http.Error(w, result, http.StatusBadRequest)
+	}
+}
+
+func updateSingleComment(w http.ResponseWriter, r *http.Request) {
+	senderId := r.Context().Value("user").(uint)
+	senderFound := findModel(fmt.Sprint(senderId), "users")
+	sender := senderFound[0].ModelObject.(map[string]interface{})
+	vars := mux.Vars(r)
+	id := vars["id"]
+	fmt.Printf("Endpoint Hit: updateSingleComment by id='%v'\n", id)
+	found := findModel(id, "comments")
+	if found != nil {
+		index := found[0].Index
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		reqBody, _ := ioutil.ReadAll(r.Body)
+		var comment Comment
+		var reqMap map[string]string
+		db.First(&comment, id)
+		json.Unmarshal(reqBody, &reqMap)
+		if senderId != comment.UserID && sender["admin"] == false {
+			http.Error(w, "Permission Dinied!", http.StatusForbidden)
+			return
+		}
+		comment.Message = reqMap["Message"]
+		Comments = append(Comments[:index], Comments[index+1:]...)
+		db.Save(&comment)
+		// Reload Users list
+		db.Preload("Articles").Preload("Comments").Find(&Users)
+		db.Preload("Comments").Find(&Articles)
+		Comments = append(Comments, comment)
+		objects["comments"] = Comments
+		objects["articles"] = Articles
+		objects["users"] = Users
+		reloadObjects()
+		result := comment
+		json.NewEncoder(w).Encode(result)
+	} else {
+		result := fmt.Sprintf("No comment found by id: '%v'!", id)
+		http.Error(w, result, http.StatusBadRequest)
+
+	}
 }
