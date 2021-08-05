@@ -16,10 +16,11 @@ var db = getDatabase()
 
 type Article struct {
 	gorm.Model
-	Title   string `gorm:"not null" json:"Title"`
-	Desc    string `gorm:"not null" json:"Descriptions"`
-	Content string `gorm:"not null" json:"Content"`
-	UserID  uint   `gorm:"default:1"`
+	Title    string    `gorm:"not null" json:"Title"`
+	Desc     string    `gorm:"not null" json:"Descriptions"`
+	Content  string    `gorm:"not null" json:"Content"`
+	UserID   uint      `gorm:"default:1"`
+	Comments []Comment `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
 
 var Articles []Article
@@ -33,11 +34,22 @@ type User struct {
 	Username  string    `gorm:"not null;unique"`
 	Password  string    `gorm:"not null"`
 	Articles  []Article `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	Comments  []Comment `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Token     string    `gorm:"-" sql:"-" json:"token"`
 	Admin     bool      `gorm:"not null; default:false" json:"admin"`
 }
 
 var Users []User
+
+type Comment struct {
+	gorm.Model
+	UserID    uint
+	ArticleID uint
+	Message   string     `gorm:"not null" json:"message"`
+	Replies   []*Comment `gorm:"many2many:comment_replies"`
+}
+
+var Comments []Comment
 
 /*
 JWT claims struct
@@ -116,6 +128,7 @@ func (user User) MarshalJSON() ([]byte, error) {
 		Age       string    `json:"age"`
 		Admin     bool      `json:"admin"`
 		Articles  []Article `json:"articles"`
+		Comments  []Comment `json:"comments"`
 	}
 	tmp.ID = user.ID
 	tmp.FirstName = user.FirstName
@@ -146,11 +159,14 @@ func perpareModels() (map[string]interface{}, map[string]interface{}) {
 	objects = make(map[string]interface{})
 	models["article"] = Article{}
 	models["user"] = User{}
+	models["comment"] = Comment{}
 	autoMigrate(models)
-	db.Find(&Articles)
-	db.Preload("Articles").Find(&Users)
+	db.Preload("Articles").Preload("Comments").Find(&Users)
+	db.Preload("Comments").Find(&Articles)
+	db.Preload("Replies").Find(&Comments)
 	objects["articles"] = Articles
 	objects["users"] = Users
+	objects["comments"] = Comments
 	reloadObjects()
 	return models, objects
 }
