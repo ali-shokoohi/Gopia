@@ -1,11 +1,11 @@
 package main
 
 import (
-    "fmt"
+	"fmt"
 )
 
 func main() {
-    fmt.Println("Rest API v2.0 - Mux Routers")
-    models, objects = perpareModels()
-    handleRequests()
+	fmt.Println("Go-Rest-API")
+	perpareModels()
+	handleRequests()
 }

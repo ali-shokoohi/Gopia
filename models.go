@@ -7,12 +7,15 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/patrickmn/go-cache"
 	"gorm.io/gorm"
 )
 
 var db = getDatabase()
+var AppCache *cache.Cache = getCache()
 
 type Article struct {
 	gorm.Model
@@ -46,7 +49,7 @@ type Comment struct {
 	UserID    uint
 	ArticleID uint
 	Message   string     `gorm:"not null" json:"message"`
-	Replies   []*Comment `gorm:"many2many:comment_replies"`
+	Replies   []*Comment `gorm:"many2many:comment_replies" json:"replies"`
 }
 
 var Comments []Comment
@@ -60,10 +63,6 @@ type Token struct {
 }
 
 var models map[string]interface{}
-var objects map[string]interface{}
-var objectsJsonMap map[string][]interface{}
-
-var objectsJson []byte
 
 //Validate incoming user details...
 func (user *User) Validate() (string, bool) {
@@ -140,6 +139,10 @@ func (user User) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&tmp)
 }
 
+func getCache() *cache.Cache {
+	return cache.New(5*time.Minute, 10*time.Minute)
+}
+
 func autoMigrate(models map[string]interface{}) {
 	for index, model := range models {
 		fmt.Printf("%s: %v\n", index, model)
@@ -147,16 +150,8 @@ func autoMigrate(models map[string]interface{}) {
 	}
 }
 
-func reloadObjects() {
-	// Convert objects map to a []byte map
-	objectsJson, _ = json.Marshal(objects)
-	// Again convert to a string map
-	json.Unmarshal(objectsJson, &objectsJsonMap)
-}
-
-func perpareModels() (map[string]interface{}, map[string]interface{}) {
+func perpareModels() {
 	models = make(map[string]interface{})
-	objects = make(map[string]interface{})
 	models["article"] = Article{}
 	models["user"] = User{}
 	models["comment"] = Comment{}
@@ -164,9 +159,7 @@ func perpareModels() (map[string]interface{}, map[string]interface{}) {
 	db.Preload("Articles").Preload("Comments").Find(&Users)
 	db.Preload("Comments").Find(&Articles)
 	db.Preload("Replies").Find(&Comments)
-	objects["articles"] = Articles
-	objects["users"] = Users
-	objects["comments"] = Comments
-	reloadObjects()
-	return models, objects
+	AppCache.Set("users", Users, 24*time.Hour)
+	AppCache.Set("articles", Articles, 24*time.Hour)
+	AppCache.Set("comments", Comments, 24*time.Hour)
 }

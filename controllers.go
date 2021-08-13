@@ -9,26 +9,53 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 )
 
-type FoundModel struct {
-	Index       int
-	ModelObject interface{}
-}
-
-func findModel(id string, modelType string) []FoundModel {
-	var found []FoundModel
-	for index, model := range objectsJsonMap[modelType] {
-		if fmt.Sprint(model.(map[string]interface{})["ID"]) == id {
-			FoundModel := FoundModel{Index: index, ModelObject: model}
-			found = append(found, FoundModel)
-			break
+func findModel(id string, modelType string) interface{} {
+	list, exist := AppCache.Get(modelType)
+	if exist {
+		if modelType == "users" {
+			return findUser(id, list.([]User))
+		} else if modelType == "articles" {
+			return findArticle(id, list.([]Article))
+		} else if modelType == "comments" {
+			return findComment(id, list.([]Comment))
+		} else {
+			return nil
 		}
 	}
-	return found
+	return nil
+}
+
+func findUser(id string, users []User) interface{} {
+	for _, user := range users {
+		if fmt.Sprint(user.ID) == id {
+			return user
+		}
+	}
+	return nil
+}
+
+func findArticle(id string, articles []Article) interface{} {
+	for _, article := range articles {
+		if fmt.Sprint(article.ID) == id {
+			return article
+		}
+	}
+	return nil
+}
+
+func findComment(id string, comments []Comment) interface{} {
+	for _, comment := range comments {
+		if fmt.Sprint(comment.ID) == id {
+			return comment
+		}
+	}
+	return nil
 }
 
 func homePage(w http.ResponseWriter, r *http.Request) {
@@ -58,10 +85,9 @@ func returnSingleArticle(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Endpoint Hit: returnSingeArticle by id='%v'\n", id)
 	found := findModel(id, "articles")
 	if found != nil {
-		result := found[0].ModelObject
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(result)
+		json.NewEncoder(w).Encode(found)
 	} else {
 		result := fmt.Sprintf("No article found by id: '%v'!", id)
 		w.WriteHeader(404)
@@ -81,12 +107,10 @@ func createNewArticle(w http.ResponseWriter, r *http.Request) {
 		userId := r.Context().Value("user").(uint)
 		article.UserID = uint(userId)
 		db.Create(&article)
-		// Reload Users list
+		db.Preload("Comments").Find(&Articles)
 		db.Preload("Articles").Preload("Comments").Find(&Users)
-		Articles = append(Articles, article)
-		objects["articles"] = Articles
-		objects["users"] = Users
-		reloadObjects()
+		AppCache.Set("users", Users, 24*time.Hour)
+		AppCache.Set("articles", Articles, 24*time.Hour)
 		json.NewEncoder(w).Encode(article)
 	} else {
 		result := fmt.Sprintf("One article found by id: '%v'!", article.ID)
@@ -97,27 +121,26 @@ func createNewArticle(w http.ResponseWriter, r *http.Request) {
 func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
 	senderFound := findModel(fmt.Sprint(senderId), "users")
-	sender := senderFound[0].ModelObject.(map[string]interface{})
+	sender := senderFound.(User)
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: deleteSingleArticle by id='%v'\n", id)
 	found := findModel(id, "articles")
 	if found != nil {
-		article := found[0].ModelObject.(map[string]interface{})
-		index := found[0].Index
-		if int(senderId) != int(article["UserID"].(float64)) && sender["admin"] == false {
+		article := found.(Article)
+		if uint(senderId) != article.UserID && sender.Admin == false {
 			http.Error(w, "Permission Dinied!", http.StatusForbidden)
 			return
 		}
 		db.Delete(&article)
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
-		Articles = append(Articles[:index], Articles[index+1:]...)
-		// Reload Users list
+		db.Find(&Comments)
+		db.Preload("Comments").Find(&Articles)
 		db.Preload("Articles").Preload("Comments").Find(&Users)
-		objects["articles"] = Articles
-		objects["users"] = Users
-		reloadObjects()
+		AppCache.Set("comments", Comments, 24*time.Hour)
+		AppCache.Set("articles", Articles, 24*time.Hour)
+		AppCache.Set("users", Users, 24*time.Hour)
 		result := article
 		json.NewEncoder(w).Encode(result)
 	} else {
@@ -129,13 +152,12 @@ func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
 	senderFound := findModel(fmt.Sprint(senderId), "users")
-	sender := senderFound[0].ModelObject.(map[string]interface{})
+	sender := senderFound.(User)
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: updateSingleArticle by id='%v'\n", id)
 	found := findModel(id, "articles")
 	if found != nil {
-		index := found[0].Index
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
 		reqBody, _ := ioutil.ReadAll(r.Body)
@@ -143,21 +165,18 @@ func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
 		var reqMap map[string]string
 		db.First(&article, id)
 		json.Unmarshal(reqBody, &reqMap)
-		if senderId != article.UserID && sender["admin"] == false {
+		if uint(senderId) != article.UserID && sender.Admin == false {
 			http.Error(w, "Permission Dinied!", http.StatusForbidden)
 			return
 		}
 		article.Title = reqMap["Title"]
 		article.Desc = reqMap["Descriptions"]
 		article.Content = reqMap["Content"]
-		Articles = append(Articles[:index], Articles[index+1:]...)
 		db.Save(&article)
-		// Reload Users list
+		db.Preload("Comments").Find(&Articles)
 		db.Preload("Articles").Preload("Comments").Find(&Users)
-		Articles = append(Articles, article)
-		objects["articles"] = Articles
-		objects["users"] = Users
-		reloadObjects()
+		AppCache.Set("users", Users, 24*time.Hour)
+		AppCache.Set("articles", Articles, 24*time.Hour)
 		result := article
 		json.NewEncoder(w).Encode(result)
 	} else {
@@ -179,10 +198,9 @@ func returnSingleUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Endpoint Hit: returnSingeUser by id='%v'\n", id)
 	found := findModel(id, "users")
 	if found != nil {
-		result := found[0].ModelObject
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(result)
+		json.NewEncoder(w).Encode(found)
 	} else {
 		result := fmt.Sprintf("No user found by id: '%v'!", id)
 		w.WriteHeader(404)
@@ -203,8 +221,8 @@ func createNewUser(w http.ResponseWriter, r *http.Request) {
 			user.Admin = false
 		} else {
 			senderFound := findModel(fmt.Sprint(senderId.(uint)), "users")
-			sender := senderFound[0].ModelObject.(map[string]interface{})
-			if sender["admin"] == false {
+			sender := senderFound.(User)
+			if sender.Admin == false {
 				user.Admin = false
 			}
 		}
@@ -215,9 +233,8 @@ func createNewUser(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, res, http.StatusBadRequest)
 			return
 		}
-		Users = append(Users, user)
-		objects["users"] = Users
-		reloadObjects()
+		db.Preload("Articles").Preload("Comments").Find(&Users)
+		AppCache.Set("users", Users, 24*time.Hour)
 		// Show every things about new user exp: Hashed password, jwt token
 		var tmpUser struct {
 			ID        uint
@@ -249,30 +266,29 @@ func createNewUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteSingleUser(w http.ResponseWriter, r *http.Request) {
-	senderId := r.Context().Value("user").(int)
+	senderId := r.Context().Value("user").(uint)
 	senderFound := findModel(fmt.Sprint(senderId), "users")
-	sender := senderFound[0].ModelObject.(map[string]interface{})
+	sender := senderFound.(User)
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: deleteSingleUser by id='%v'\n", id)
 	// Only owners or admins can do this
-	if strconv.Itoa(senderId) != id && sender["admin"] == false {
+	if strconv.Itoa(int(senderId)) != id && sender.Admin == false {
 		http.Error(w, "Permission Dinied!", http.StatusForbidden)
 		return
 	}
 	found := findModel(id, "users")
 	if found != nil {
-		user := found[0].ModelObject
-		index := found[0].Index
+		user := found.(User)
 		db.Delete(&user)
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
-		Users = append(Users[:index], Users[index+1:]...)
-		// Reload Articles list
-		db.Find(&Articles)
-		objects["users"] = Users
-		objects["articles"] = Articles
-		reloadObjects()
+		db.Find(&Comments)
+		db.Preload("Comments").Find(&Articles)
+		db.Preload("Articles").Preload("Comments").Find(&Users)
+		AppCache.Set("comments", Comments, 24*time.Hour)
+		AppCache.Set("articles", Articles, 24*time.Hour)
+		AppCache.Set("users", Users, 24*time.Hour)
 		result := user
 		json.NewEncoder(w).Encode(result)
 	} else {
@@ -282,23 +298,21 @@ func deleteSingleUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateSingleUser(w http.ResponseWriter, r *http.Request) {
-	senderId := r.Context().Value("user").(int)
+	senderId := r.Context().Value("user").(uint)
 	senderFound := findModel(fmt.Sprint(senderId), "users")
-	sender := senderFound[0].ModelObject.(map[string]interface{})
+	sender := senderFound.(User)
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: updateSingleUser by id='%v'\n", id)
 	// Only owners or admins can do this
-	if strconv.Itoa(senderId) != id && sender["admin"] == false {
+	if strconv.Itoa(int(senderId)) != id && sender.Admin == false {
 		http.Error(w, "Permission Dinied!", http.StatusForbidden)
 		return
 	}
 	found := findModel(id, "users")
 	if found != nil {
-		index := found[0].Index
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
-		Users = append(Users[:index], Users[index+1:]...)
 		reqBody, _ := ioutil.ReadAll(r.Body)
 		var user User
 		var reqMap map[string]interface{}
@@ -310,7 +324,7 @@ func updateSingleUser(w http.ResponseWriter, r *http.Request) {
 		user.Age = reqMap["age"].(string)
 		user.Username = reqMap["username"].(string)
 		user.Password = reqMap["password"].(string)
-		if sender["admin"] == true {
+		if sender.Admin == true {
 			user.Admin = reqMap["admin"].(bool)
 		}
 		res, ok := user.Update()
@@ -318,9 +332,8 @@ func updateSingleUser(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, res, http.StatusBadRequest)
 			return
 		}
-		Users = append(Users, user)
-		objects["users"] = Users
-		reloadObjects()
+		db.Preload("Articles").Preload("Comments").Find(&Users)
+		AppCache.Set("users", Users, 24*time.Hour)
 		result := user
 		json.NewEncoder(w).Encode(result)
 	} else {
@@ -373,10 +386,9 @@ func returnSingleComment(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Endpoint Hit: returnSingeComment by id='%v'\n", id)
 	found := findModel(id, "comments")
 	if found != nil {
-		result := found[0].ModelObject
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(result)
+		json.NewEncoder(w).Encode(found)
 	} else {
 		result := fmt.Sprintf("No comment found by id: '%v'!", id)
 		w.WriteHeader(404)
@@ -397,13 +409,12 @@ func createNewComment(w http.ResponseWriter, r *http.Request) {
 		comment.UserID = uint(userId)
 		db.Create(&comment)
 		// Reload Users list
-		db.Preload("Articles").Preload("Comments").Find(&Users)
+		db.Find(&Comments)
 		db.Preload("Comments").Find(&Articles)
-		Comments = append(Comments, comment)
-		objects["comments"] = Comments
-		objects["articles"] = Articles
-		objects["users"] = Users
-		reloadObjects()
+		db.Preload("Articles").Preload("Comments").Find(&Users)
+		AppCache.Set("comments", Comments, 24*time.Hour)
+		AppCache.Set("articles", Articles, 24*time.Hour)
+		AppCache.Set("users", Users, 24*time.Hour)
 		json.NewEncoder(w).Encode(comment)
 	} else {
 		result := fmt.Sprintf("One comment found by id: '%v'!", comment.ID)
@@ -414,29 +425,26 @@ func createNewComment(w http.ResponseWriter, r *http.Request) {
 func deleteSingleComment(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
 	senderFound := findModel(fmt.Sprint(senderId), "users")
-	sender := senderFound[0].ModelObject.(map[string]interface{})
+	sender := senderFound.(User)
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: deleteSingleComment by id='%v'\n", id)
 	found := findModel(id, "comments")
 	if found != nil {
-		comment := found[0].ModelObject.(map[string]interface{})
-		index := found[0].Index
-		if int(senderId) != int(comment["UserID"].(float64)) && sender["admin"] == false {
+		comment := found.(Comment)
+		if uint(senderId) != comment.UserID && sender.Admin == false {
 			http.Error(w, "Permission Dinied!", http.StatusForbidden)
 			return
 		}
 		db.Delete(&comment)
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
-		Comments = append(Comments[:index], Comments[index+1:]...)
-		// Reload Users list
-		db.Preload("Articles").Preload("Comments").Find(&Users)
+		db.Find(&Comments)
 		db.Preload("Comments").Find(&Articles)
-		objects["comments"] = Comments
-		objects["articles"] = Articles
-		objects["users"] = Users
-		reloadObjects()
+		db.Preload("Articles").Preload("Comments").Find(&Users)
+		AppCache.Set("comments", Comments, 24*time.Hour)
+		AppCache.Set("articles", Articles, 24*time.Hour)
+		AppCache.Set("users", Users, 24*time.Hour)
 		result := comment
 		json.NewEncoder(w).Encode(result)
 	} else {
@@ -448,13 +456,12 @@ func deleteSingleComment(w http.ResponseWriter, r *http.Request) {
 func updateSingleComment(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
 	senderFound := findModel(fmt.Sprint(senderId), "users")
-	sender := senderFound[0].ModelObject.(map[string]interface{})
+	sender := senderFound.(User)
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: updateSingleComment by id='%v'\n", id)
 	found := findModel(id, "comments")
 	if found != nil {
-		index := found[0].Index
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
 		reqBody, _ := ioutil.ReadAll(r.Body)
@@ -462,21 +469,18 @@ func updateSingleComment(w http.ResponseWriter, r *http.Request) {
 		var reqMap map[string]string
 		db.First(&comment, id)
 		json.Unmarshal(reqBody, &reqMap)
-		if senderId != comment.UserID && sender["admin"] == false {
+		if senderId != comment.UserID && sender.Admin == false {
 			http.Error(w, "Permission Dinied!", http.StatusForbidden)
 			return
 		}
 		comment.Message = reqMap["Message"]
-		Comments = append(Comments[:index], Comments[index+1:]...)
 		db.Save(&comment)
-		// Reload Users list
-		db.Preload("Articles").Preload("Comments").Find(&Users)
+		db.Find(&Comments)
 		db.Preload("Comments").Find(&Articles)
-		Comments = append(Comments, comment)
-		objects["comments"] = Comments
-		objects["articles"] = Articles
-		objects["users"] = Users
-		reloadObjects()
+		db.Preload("Articles").Preload("Comments").Find(&Users)
+		AppCache.Set("comments", Comments, 24*time.Hour)
+		AppCache.Set("articles", Articles, 24*time.Hour)
+		AppCache.Set("users", Users, 24*time.Hour)
 		result := comment
 		json.NewEncoder(w).Encode(result)
 	} else {
