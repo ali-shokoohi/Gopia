@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/patrickmn/go-cache"
@@ -14,8 +15,10 @@ import (
 	"gorm.io/gorm"
 )
 
-var db = new(database.Database).GetDatabase()
+// DB database client
+var DB *gorm.DB = new(database.Database).GetDatabase()
 
+// AppCache cache client
 var AppCache *cache.Cache = new(database.Database).GetCache()
 
 // Article type
@@ -82,14 +85,14 @@ func (user *User) Validate() (string, bool) {
 	//Email and Username must be unique
 	temp := &User{}
 	//check for errors and duplicate emails
-	err := db.Table("users").Where("email = ?", user.Email).First(temp).Error
+	err := DB.Table("users").Where("email = ?", user.Email).First(temp).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return "Connection error. Please retry", false
 	}
 	if temp.Email != "" {
 		return "Email address already in use by another user.", false
 	}
-	errUser := db.Table("users").Where("Username = ?", user.Username).First(temp).Error
+	errUser := DB.Table("users").Where("Username = ?", user.Username).First(temp).Error
 	if errUser != nil && errUser != gorm.ErrRecordNotFound {
 		return "Connection error. Please retry", false
 	}
@@ -107,7 +110,7 @@ func (user *User) Create() (string, bool) {
 	hasher := md5.New()
 	hasher.Write([]byte(user.Password))
 	user.Password = hex.EncodeToString(hasher.Sum(nil))
-	db.Create(&user)
+	DB.Create(&user)
 	if user.ID <= 0 {
 		return "Failed to create account, connection error.", false
 	}
@@ -123,7 +126,7 @@ func (user *User) Update() (string, bool) {
 	hasher := md5.New()
 	hasher.Write([]byte(user.Password))
 	user.Password = hex.EncodeToString(hasher.Sum(nil))
-	db.Save(&user)
+	DB.Save(&user)
 	return "Account has been updated", true
 }
 
@@ -152,7 +155,7 @@ func (user User) MarshalJSON() ([]byte, error) {
 func autoMigrate(models map[string]interface{}) {
 	for index, model := range models {
 		fmt.Printf("%s: %v\n", index, model)
-		db.AutoMigrate(model)
+		DB.AutoMigrate(model)
 	}
 }
 
@@ -165,5 +168,11 @@ func (model *Model) PerpareModels() {
 	models["article"] = Article{}
 	models["user"] = User{}
 	models["comment"] = Comment{}
+	DB.Preload("Articles").Preload("Comments").Find(&Users)
+	DB.Preload("Comments").Find(&Articles)
+	DB.Preload("Replies").Find(&Comments)
+	AppCache.Set("users", Users, 24*time.Hour)
+	AppCache.Set("articles", Articles, 24*time.Hour)
+	AppCache.Set("comments", Comments, 24*time.Hour)
 	autoMigrate(models)
 }

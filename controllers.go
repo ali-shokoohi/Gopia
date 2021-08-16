@@ -13,30 +13,13 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
-	"gitlab.com/greenly/go-rest-api/database"
 	"gitlab.com/greenly/go-rest-api/models"
 )
 
-var (
-	Users    []models.User
-	Articles []models.Article
-	Comments []models.Comment
-	db       = new(database.Database).GetDatabase()
-	AppCache = new(database.Database).GetCache()
-	fillFunc = func() bool {
-		db.Preload("Articles").Preload("Comments").Find(&Users)
-		db.Preload("Comments").Find(&Articles)
-		db.Preload("Replies").Find(&Comments)
-		AppCache.Set("users", Users, 24*time.Hour)
-		AppCache.Set("articles", Articles, 24*time.Hour)
-		AppCache.Set("comments", Comments, 24*time.Hour)
-		return true
-	}
-	fill = fillFunc()
-)
+var ()
 
 func findModel(id string, modelType string) interface{} {
-	list, exist := AppCache.Get(modelType)
+	list, exist := models.AppCache.Get(modelType)
 	if exist {
 		if modelType == "users" {
 			return findUser(id, list.([]models.User))
@@ -96,7 +79,7 @@ func skipCORS(w http.ResponseWriter, r *http.Request) {
 func returnAllArticles(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Endpoint Hit: returnAllArticles")
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(Articles)
+	json.NewEncoder(w).Encode(models.Articles)
 }
 
 func returnSingleArticle(w http.ResponseWriter, r *http.Request) {
@@ -126,11 +109,11 @@ func createNewArticle(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		userId := r.Context().Value("user").(uint)
 		article.UserID = uint(userId)
-		db.Create(&article)
-		db.Preload("Comments").Find(&Articles)
-		db.Preload("Articles").Preload("Comments").Find(&Users)
-		AppCache.Set("users", Users, 24*time.Hour)
-		AppCache.Set("articles", Articles, 24*time.Hour)
+		models.DB.Create(&article)
+		models.DB.Preload("Comments").Find(&models.Articles)
+		models.DB.Preload("Articles").Preload("Comments").Find(&models.Users)
+		models.AppCache.Set("users", models.Users, 24*time.Hour)
+		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
 		json.NewEncoder(w).Encode(article)
 	} else {
 		result := fmt.Sprintf("One article found by id: '%v'!", article.ID)
@@ -152,15 +135,15 @@ func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Permission Dinied!", http.StatusForbidden)
 			return
 		}
-		db.Delete(&article)
+		models.DB.Delete(&article)
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
-		db.Find(&Comments)
-		db.Preload("Comments").Find(&Articles)
-		db.Preload("Articles").Preload("Comments").Find(&Users)
-		AppCache.Set("comments", Comments, 24*time.Hour)
-		AppCache.Set("articles", Articles, 24*time.Hour)
-		AppCache.Set("users", Users, 24*time.Hour)
+		models.DB.Find(&models.Comments)
+		models.DB.Preload("Comments").Find(&models.Articles)
+		models.DB.Preload("Articles").Preload("Comments").Find(&models.Users)
+		models.AppCache.Set("comments", models.Comments, 24*time.Hour)
+		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
+		models.AppCache.Set("users", models.Users, 24*time.Hour)
 		result := article
 		json.NewEncoder(w).Encode(result)
 	} else {
@@ -183,7 +166,7 @@ func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
 		reqBody, _ := ioutil.ReadAll(r.Body)
 		var article models.Article
 		var reqMap map[string]string
-		db.First(&article, id)
+		models.DB.First(&article, id)
 		json.Unmarshal(reqBody, &reqMap)
 		if uint(senderId) != article.UserID && sender.Admin == false {
 			http.Error(w, "Permission Dinied!", http.StatusForbidden)
@@ -192,11 +175,11 @@ func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
 		article.Title = reqMap["Title"]
 		article.Desc = reqMap["Descriptions"]
 		article.Content = reqMap["Content"]
-		db.Save(&article)
-		db.Preload("Comments").Find(&Articles)
-		db.Preload("Articles").Preload("Comments").Find(&Users)
-		AppCache.Set("users", Users, 24*time.Hour)
-		AppCache.Set("articles", Articles, 24*time.Hour)
+		models.DB.Save(&article)
+		models.DB.Preload("Comments").Find(&models.Articles)
+		models.DB.Preload("Articles").Preload("Comments").Find(&models.Users)
+		models.AppCache.Set("users", models.Users, 24*time.Hour)
+		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
 		result := article
 		json.NewEncoder(w).Encode(result)
 	} else {
@@ -209,7 +192,7 @@ func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
 func returnAllUsers(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Endpoint Hit: returnAllUsers")
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(Users)
+	json.NewEncoder(w).Encode(models.Users)
 }
 
 func returnSingleUser(w http.ResponseWriter, r *http.Request) {
@@ -253,8 +236,8 @@ func createNewUser(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, res, http.StatusBadRequest)
 			return
 		}
-		db.Preload("Articles").Preload("Comments").Find(&Users)
-		AppCache.Set("users", Users, 24*time.Hour)
+		models.DB.Preload("Articles").Preload("Comments").Find(&models.Users)
+		models.AppCache.Set("users", models.Users, 24*time.Hour)
 		// Show every things about new user exp: Hashed password, jwt token
 		var tmpUser struct {
 			ID        uint
@@ -300,15 +283,15 @@ func deleteSingleUser(w http.ResponseWriter, r *http.Request) {
 	found := findModel(id, "users")
 	if found != nil {
 		user := found.(models.User)
-		db.Delete(&user)
+		models.DB.Delete(&user)
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
-		db.Find(&Comments)
-		db.Preload("Comments").Find(&Articles)
-		db.Preload("Articles").Preload("Comments").Find(&Users)
-		AppCache.Set("comments", Comments, 24*time.Hour)
-		AppCache.Set("articles", Articles, 24*time.Hour)
-		AppCache.Set("users", Users, 24*time.Hour)
+		models.DB.Find(&models.Comments)
+		models.DB.Preload("Comments").Find(&models.Articles)
+		models.DB.Preload("Articles").Preload("Comments").Find(&models.Users)
+		models.AppCache.Set("comments", models.Comments, 24*time.Hour)
+		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
+		models.AppCache.Set("users", models.Users, 24*time.Hour)
 		result := user
 		json.NewEncoder(w).Encode(result)
 	} else {
@@ -336,7 +319,7 @@ func updateSingleUser(w http.ResponseWriter, r *http.Request) {
 		reqBody, _ := ioutil.ReadAll(r.Body)
 		var user models.User
 		var reqMap map[string]interface{}
-		db.First(&user, id)
+		models.DB.First(&user, id)
 		json.Unmarshal(reqBody, &reqMap)
 		user.FirstName = reqMap["first_name"].(string)
 		user.LastName = reqMap["last_name"].(string)
@@ -352,8 +335,8 @@ func updateSingleUser(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, res, http.StatusBadRequest)
 			return
 		}
-		db.Preload("Articles").Preload("Comments").Find(&Users)
-		AppCache.Set("users", Users, 24*time.Hour)
+		models.DB.Preload("Articles").Preload("Comments").Find(&models.Users)
+		models.AppCache.Set("users", models.Users, 24*time.Hour)
 		result := user
 		json.NewEncoder(w).Encode(result)
 	} else {
@@ -372,7 +355,7 @@ func loginUser(w http.ResponseWriter, r *http.Request) {
 	hasher := md5.New()
 	hasher.Write([]byte(reqPass))
 	hashPass := hex.EncodeToString(hasher.Sum(nil))
-	for _, user := range Users {
+	for _, user := range models.Users {
 		if user.Username == reqUser && user.Password == hashPass {
 			// Set user in request
 			tk := &models.Token{UserId: user.ID}
@@ -397,7 +380,7 @@ func loginUser(w http.ResponseWriter, r *http.Request) {
 func returnAllComments(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Endpoint Hit: returnAllComments")
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(Comments)
+	json.NewEncoder(w).Encode(models.Comments)
 }
 
 func returnSingleComment(w http.ResponseWriter, r *http.Request) {
@@ -427,14 +410,14 @@ func createNewComment(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		userId := r.Context().Value("user").(uint)
 		comment.UserID = uint(userId)
-		db.Create(&comment)
+		models.DB.Create(&comment)
 		// Reload Users list
-		db.Find(&Comments)
-		db.Preload("Comments").Find(&Articles)
-		db.Preload("Articles").Preload("Comments").Find(&Users)
-		AppCache.Set("comments", Comments, 24*time.Hour)
-		AppCache.Set("articles", Articles, 24*time.Hour)
-		AppCache.Set("users", Users, 24*time.Hour)
+		models.DB.Find(&models.Comments)
+		models.DB.Preload("Comments").Find(&models.Articles)
+		models.DB.Preload("Articles").Preload("Comments").Find(&models.Users)
+		models.AppCache.Set("comments", models.Comments, 24*time.Hour)
+		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
+		models.AppCache.Set("users", models.Users, 24*time.Hour)
 		json.NewEncoder(w).Encode(comment)
 	} else {
 		result := fmt.Sprintf("One comment found by id: '%v'!", comment.ID)
@@ -456,15 +439,15 @@ func deleteSingleComment(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Permission Dinied!", http.StatusForbidden)
 			return
 		}
-		db.Delete(&comment)
+		models.DB.Delete(&comment)
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
-		db.Find(&Comments)
-		db.Preload("Comments").Find(&Articles)
-		db.Preload("Articles").Preload("Comments").Find(&Users)
-		AppCache.Set("comments", Comments, 24*time.Hour)
-		AppCache.Set("articles", Articles, 24*time.Hour)
-		AppCache.Set("users", Users, 24*time.Hour)
+		models.DB.Find(&models.Comments)
+		models.DB.Preload("Comments").Find(&models.Articles)
+		models.DB.Preload("Articles").Preload("Comments").Find(&models.Users)
+		models.AppCache.Set("comments", models.Comments, 24*time.Hour)
+		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
+		models.AppCache.Set("users", models.Users, 24*time.Hour)
 		result := comment
 		json.NewEncoder(w).Encode(result)
 	} else {
@@ -487,20 +470,20 @@ func updateSingleComment(w http.ResponseWriter, r *http.Request) {
 		reqBody, _ := ioutil.ReadAll(r.Body)
 		var comment models.Comment
 		var reqMap map[string]string
-		db.First(&comment, id)
+		models.DB.First(&comment, id)
 		json.Unmarshal(reqBody, &reqMap)
 		if senderId != comment.UserID && sender.Admin == false {
 			http.Error(w, "Permission Dinied!", http.StatusForbidden)
 			return
 		}
 		comment.Message = reqMap["Message"]
-		db.Save(&comment)
-		db.Find(&Comments)
-		db.Preload("Comments").Find(&Articles)
-		db.Preload("Articles").Preload("Comments").Find(&Users)
-		AppCache.Set("comments", Comments, 24*time.Hour)
-		AppCache.Set("articles", Articles, 24*time.Hour)
-		AppCache.Set("users", Users, 24*time.Hour)
+		models.DB.Save(&comment)
+		models.DB.Find(&models.Comments)
+		models.DB.Preload("Comments").Find(&models.Articles)
+		models.DB.Preload("Articles").Preload("Comments").Find(&models.Users)
+		models.AppCache.Set("comments", models.Comments, 24*time.Hour)
+		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
+		models.AppCache.Set("users", models.Users, 24*time.Hour)
 		result := comment
 		json.NewEncoder(w).Encode(result)
 	} else {
