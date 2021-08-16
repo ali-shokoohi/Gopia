@@ -1,4 +1,4 @@
-package main
+package controllers
 
 import (
 	"crypto/md5"
@@ -61,12 +61,14 @@ func findComment(id string, comments []models.Comment) interface{} {
 	return nil
 }
 
-func homePage(w http.ResponseWriter, r *http.Request) {
+// HomePage controller
+func HomePage(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Welcome to HomePage!")
 	fmt.Println("Endpoint Hit: homePage")
 }
 
-func skipCORS(w http.ResponseWriter, r *http.Request) {
+// SkipCORS controller
+func SkipCORS(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Endpoint Hit: skipOPTION")
 	//Allow CORS here By * or specific origin
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -76,13 +78,15 @@ func skipCORS(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Ok!"))
 }
 
-func returnAllArticles(w http.ResponseWriter, r *http.Request) {
+// ReturnAllArticles controller
+func ReturnAllArticles(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Endpoint Hit: returnAllArticles")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(models.Articles)
 }
 
-func returnSingleArticle(w http.ResponseWriter, r *http.Request) {
+// ReturnSingleArticle controller
+func ReturnSingleArticle(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: returnSingeArticle by id='%v'\n", id)
@@ -98,7 +102,8 @@ func returnSingleArticle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func createNewArticle(w http.ResponseWriter, r *http.Request) {
+// CreateNewArticle controller
+func CreateNewArticle(w http.ResponseWriter, r *http.Request) {
 	reqBody, _ := ioutil.ReadAll(r.Body)
 	var article models.Article
 	json.Unmarshal(reqBody, &article)
@@ -121,7 +126,8 @@ func createNewArticle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
+// DeleteSingleArticle controller
+func DeleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
 	senderFound := findModel(fmt.Sprint(senderId), "users")
 	sender := senderFound.(models.User)
@@ -152,7 +158,8 @@ func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
+// UpdateSingleArticle controller
+func UpdateSingleArticle(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
 	senderFound := findModel(fmt.Sprint(senderId), "users")
 	sender := senderFound.(models.User)
@@ -189,13 +196,15 @@ func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func returnAllUsers(w http.ResponseWriter, r *http.Request) {
+// ReturnAllUsers controller
+func ReturnAllUsers(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Endpoint Hit: returnAllUsers")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(models.Users)
 }
 
-func returnSingleUser(w http.ResponseWriter, r *http.Request) {
+// ReturnSingleUser controller
+func ReturnSingleUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: returnSingeUser by id='%v'\n", id)
@@ -211,7 +220,8 @@ func returnSingleUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func createNewUser(w http.ResponseWriter, r *http.Request) {
+// CreateNewUser controller
+func CreateNewUser(w http.ResponseWriter, r *http.Request) {
 	reqBody, _ := ioutil.ReadAll(r.Body)
 	var user models.User
 	json.Unmarshal(reqBody, &user)
@@ -268,7 +278,8 @@ func createNewUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func deleteSingleUser(w http.ResponseWriter, r *http.Request) {
+// DeleteSingleUser controller
+func DeleteSingleUser(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
 	senderFound := findModel(fmt.Sprint(senderId), "users")
 	sender := senderFound.(models.User)
@@ -300,7 +311,8 @@ func deleteSingleUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func updateSingleUser(w http.ResponseWriter, r *http.Request) {
+// UpdateSingleUser controller
+func UpdateSingleUser(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
 	senderFound := findModel(fmt.Sprint(senderId), "users")
 	sender := senderFound.(models.User)
@@ -346,7 +358,8 @@ func updateSingleUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func loginUser(w http.ResponseWriter, r *http.Request) {
+// LoginUser controller
+func LoginUser(w http.ResponseWriter, r *http.Request) {
 	reqBody, _ := ioutil.ReadAll(r.Body)
 	var reqMap map[string]string
 	json.Unmarshal(reqBody, &reqMap)
@@ -377,13 +390,15 @@ func loginUser(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Access Dinied!", http.StatusForbidden)
 }
 
-func returnAllComments(w http.ResponseWriter, r *http.Request) {
+// ReturnAllComments controller
+func ReturnAllComments(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Endpoint Hit: returnAllComments")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(models.Comments)
 }
 
-func returnSingleComment(w http.ResponseWriter, r *http.Request) {
+// ReturnSingleComment controller
+func ReturnSingleComment(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: returnSingeComment by id='%v'\n", id)
@@ -399,7 +414,8 @@ func returnSingleComment(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func createNewComment(w http.ResponseWriter, r *http.Request) {
+// CreateNewComment controller
+func CreateNewComment(w http.ResponseWriter, r *http.Request) {
 	reqBody, _ := ioutil.ReadAll(r.Body)
 	var comment models.Comment
 	json.Unmarshal(reqBody, &comment)
@@ -425,7 +441,8 @@ func createNewComment(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func deleteSingleComment(w http.ResponseWriter, r *http.Request) {
+// DeleteSingleComment controller
+func DeleteSingleComment(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
 	senderFound := findModel(fmt.Sprint(senderId), "users")
 	sender := senderFound.(models.User)
@@ -456,7 +473,8 @@ func deleteSingleComment(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func updateSingleComment(w http.ResponseWriter, r *http.Request) {
+// UpdateSingleComment controller
+func UpdateSingleComment(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
 	senderFound := findModel(fmt.Sprint(senderId), "users")
 	sender := senderFound.(models.User)
