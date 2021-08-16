@@ -22,7 +22,7 @@ var (
 	Articles []models.Article
 	Comments []models.Comment
 	db       = new(database.Database).GetDatabase()
-	AppCache = new(models.Model).GetCache()
+	AppCache = new(database.Database).GetCache()
 	fillFunc = func() bool {
 		db.Preload("Articles").Preload("Comments").Find(&Users)
 		db.Preload("Comments").Find(&Articles)

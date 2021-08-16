@@ -3,8 +3,10 @@ package database
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/patrickmn/go-cache"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -38,4 +40,9 @@ func (database *Database) GetDatabase() *gorm.DB {
 	fmt.Println("Successfully connected to database!")
 
 	return db
+}
+
+// GetCache () *cache.Cache {...} Return a valid cache client
+func (db *Database) GetCache() *cache.Cache {
+	return cache.New(5*time.Minute, 10*time.Minute)
 }

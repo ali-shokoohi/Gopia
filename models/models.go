@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/patrickmn/go-cache"
@@ -17,7 +16,7 @@ import (
 
 var db = new(database.Database).GetDatabase()
 
-var AppCache *cache.Cache = new(Model).GetCache()
+var AppCache *cache.Cache = new(database.Database).GetCache()
 
 // Article type
 type Article struct {
@@ -167,9 +166,4 @@ func (model *Model) PerpareModels() {
 	models["user"] = User{}
 	models["comment"] = Comment{}
 	autoMigrate(models)
-}
-
-// GetCache () *cache.Cache {...} Return a valid cache client
-func (model *Model) GetCache() *cache.Cache {
-	return cache.New(5*time.Minute, 10*time.Minute)
 }
