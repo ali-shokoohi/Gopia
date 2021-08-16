@@ -123,6 +123,14 @@ func jwtMiddleWare(handler http.Handler) http.Handler {
 			http.Error(w, "Token is not valid.", http.StatusForbidden)
 			return
 		}
+		if tk.UserId <= 0 {
+			if !necessary[0] {
+				handler.ServeHTTP(w, r)
+				return
+			}
+			http.Error(w, "User is not valid anymore!", http.StatusForbidden)
+			return
+		}
 		//Everything went well, proceed with the request and set the caller to the user retrieved from the parsed token
 		fmt.Printf("User %v", tk.UserId) //Useful for monitoring
 		ctx = context.WithValue(r.Context(), "user", tk.UserId)
