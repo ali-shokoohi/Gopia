@@ -8,18 +8,19 @@ import (
 
 	"github.com/gorilla/mux"
 	"gitlab.com/greenly/go-rest-api/controllers"
+	"gitlab.com/greenly/go-rest-api/utils/middlewares"
 )
 
 func handleRequests() {
 	router := mux.NewRouter().StrictSlash(true)
 	// Enable CORS for all endpoints
-	router.Use(CORSMiddleWare)
+	router.Use(middlewares.CORSMiddleWare)
 	// Show request URL
-	router.Use(urlMiddleWare)
+	router.Use(middlewares.URLMiddleWare)
 	// Basic Authentication middleware
 	//router.Use(authMiddleWare)
 	// JWT Authentication middleware
-	router.Use(jwtMiddleWare)
+	router.Use(middlewares.JWTMiddleWare)
 	// Route for all end points to skip OPTIONS method for CORS
 	router.HandleFunc("/article", controllers.SkipCORS).Methods("OPTIONS")
 	router.HandleFunc("/user", controllers.SkipCORS).Methods("OPTIONS")

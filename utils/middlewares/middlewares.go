@@ -1,4 +1,4 @@
-package main
+package middlewares
 
 import (
 	"context"
@@ -11,7 +11,8 @@ import (
 	"gitlab.com/greenly/go-rest-api/models"
 )
 
-func urlMiddleWare(handler http.Handler) http.Handler {
+// URLMiddleWare log requests
+func URLMiddleWare(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Request at: %v\n", r.URL)
 		handler.ServeHTTP(w, r)
@@ -46,6 +47,7 @@ func urlMiddleWare(handler http.Handler) http.Handler {
 // 	})
 // }
 
+// CORSMiddleWare for allowing CORS
 func CORSMiddleWare(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//Allow CORS here By * or specific origin
@@ -61,7 +63,8 @@ func CORSMiddleWare(handler http.Handler) http.Handler {
 	})
 }
 
-func jwtMiddleWare(handler http.Handler) http.Handler {
+// JWTMiddleWare for JWT authentication
+func JWTMiddleWare(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Remove all request user context
 		ctx := context.WithValue(r.Context(), "user", nil)
