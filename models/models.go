@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"crypto/md5"
@@ -16,8 +16,10 @@ import (
 )
 
 var db = new(database.Database).GetDatabase()
-var AppCache *cache.Cache = getCache()
 
+var AppCache *cache.Cache = new(Model).GetCache()
+
+// Article type
 type Article struct {
 	gorm.Model
 	Title    string    `gorm:"not null" json:"Title"`
@@ -27,8 +29,10 @@ type Article struct {
 	Comments []Comment `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
 
+// Articles List of all articles
 var Articles []Article
 
+// User type
 type User struct {
 	gorm.Model
 	FirstName string    `gorm:"not null" json:"first_name"`
@@ -43,8 +47,10 @@ type User struct {
 	Admin     bool      `gorm:"not null; default:false" json:"admin"`
 }
 
+// Users List of all users
 var Users []User
 
+// Comment type
 type Comment struct {
 	gorm.Model
 	UserID    uint
@@ -53,10 +59,11 @@ type Comment struct {
 	Replies   []*Comment `gorm:"many2many:comment_replies" json:"replies"`
 }
 
+// Comments List of all comments
 var Comments []Comment
 
 /*
-JWT claims struct
+Token JWT claims struct
 */
 type Token struct {
 	UserId uint
@@ -93,6 +100,7 @@ func (user *User) Validate() (string, bool) {
 	return "Requirement passed", true
 }
 
+// Create new user
 func (user *User) Create() (string, bool) {
 	if resp, ok := user.Validate(); !ok {
 		return resp, false
@@ -111,6 +119,7 @@ func (user *User) Create() (string, bool) {
 	return "Account has been created", true
 }
 
+// Update one user
 func (user *User) Update() (string, bool) {
 	hasher := md5.New()
 	hasher.Write([]byte(user.Password))
@@ -119,6 +128,7 @@ func (user *User) Update() (string, bool) {
 	return "Account has been updated", true
 }
 
+// MarshalJSON user as safe
 func (user User) MarshalJSON() ([]byte, error) {
 	var tmp struct {
 		ID        uint
@@ -140,10 +150,6 @@ func (user User) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&tmp)
 }
 
-func getCache() *cache.Cache {
-	return cache.New(5*time.Minute, 10*time.Minute)
-}
-
 func autoMigrate(models map[string]interface{}) {
 	for index, model := range models {
 		fmt.Printf("%s: %v\n", index, model)
@@ -151,16 +157,19 @@ func autoMigrate(models map[string]interface{}) {
 	}
 }
 
-func perpareModels() {
+// Model type
+type Model struct{}
+
+// PerpareModels as startup
+func (model *Model) PerpareModels() {
 	models = make(map[string]interface{})
 	models["article"] = Article{}
 	models["user"] = User{}
 	models["comment"] = Comment{}
 	autoMigrate(models)
-	db.Preload("Articles").Preload("Comments").Find(&Users)
-	db.Preload("Comments").Find(&Articles)
-	db.Preload("Replies").Find(&Comments)
-	AppCache.Set("users", Users, 24*time.Hour)
-	AppCache.Set("articles", Articles, 24*time.Hour)
-	AppCache.Set("comments", Comments, 24*time.Hour)
+}
+
+// GetCache () *cache.Cache {...} Return a valid cache client
+func (model *Model) GetCache() *cache.Cache {
+	return cache.New(5*time.Minute, 10*time.Minute)
 }

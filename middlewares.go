@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"gitlab.com/greenly/go-rest-api/models"
 )
 
 func urlMiddleWare(handler http.Handler) http.Handler {
@@ -101,7 +102,7 @@ func jwtMiddleWare(handler http.Handler) http.Handler {
 		}
 
 		tokenPart := splitted[1] //Grab the token part, what we are truly interested in
-		tk := &Token{}
+		tk := &models.Token{}
 
 		token, err := jwt.ParseWithClaims(tokenPart, tk, func(token *jwt.Token) (interface{}, error) {
 			return []byte(os.Getenv("token_password")), nil

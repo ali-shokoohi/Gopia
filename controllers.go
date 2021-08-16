@@ -13,17 +13,37 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
+	"gitlab.com/greenly/go-rest-api/database"
+	"gitlab.com/greenly/go-rest-api/models"
+)
+
+var (
+	Users    []models.User
+	Articles []models.Article
+	Comments []models.Comment
+	db       = new(database.Database).GetDatabase()
+	AppCache = new(models.Model).GetCache()
+	fillFunc = func() bool {
+		db.Preload("Articles").Preload("Comments").Find(&Users)
+		db.Preload("Comments").Find(&Articles)
+		db.Preload("Replies").Find(&Comments)
+		AppCache.Set("users", Users, 24*time.Hour)
+		AppCache.Set("articles", Articles, 24*time.Hour)
+		AppCache.Set("comments", Comments, 24*time.Hour)
+		return true
+	}
+	fill = fillFunc()
 )
 
 func findModel(id string, modelType string) interface{} {
 	list, exist := AppCache.Get(modelType)
 	if exist {
 		if modelType == "users" {
-			return findUser(id, list.([]User))
+			return findUser(id, list.([]models.User))
 		} else if modelType == "articles" {
-			return findArticle(id, list.([]Article))
+			return findArticle(id, list.([]models.Article))
 		} else if modelType == "comments" {
-			return findComment(id, list.([]Comment))
+			return findComment(id, list.([]models.Comment))
 		} else {
 			return nil
 		}
@@ -31,7 +51,7 @@ func findModel(id string, modelType string) interface{} {
 	return nil
 }
 
-func findUser(id string, users []User) interface{} {
+func findUser(id string, users []models.User) interface{} {
 	for _, user := range users {
 		if fmt.Sprint(user.ID) == id {
 			return user
@@ -40,7 +60,7 @@ func findUser(id string, users []User) interface{} {
 	return nil
 }
 
-func findArticle(id string, articles []Article) interface{} {
+func findArticle(id string, articles []models.Article) interface{} {
 	for _, article := range articles {
 		if fmt.Sprint(article.ID) == id {
 			return article
@@ -49,7 +69,7 @@ func findArticle(id string, articles []Article) interface{} {
 	return nil
 }
 
-func findComment(id string, comments []Comment) interface{} {
+func findComment(id string, comments []models.Comment) interface{} {
 	for _, comment := range comments {
 		if fmt.Sprint(comment.ID) == id {
 			return comment
@@ -97,7 +117,7 @@ func returnSingleArticle(w http.ResponseWriter, r *http.Request) {
 
 func createNewArticle(w http.ResponseWriter, r *http.Request) {
 	reqBody, _ := ioutil.ReadAll(r.Body)
-	var article Article
+	var article models.Article
 	json.Unmarshal(reqBody, &article)
 	fmt.Printf("Endpoint Hit: CreateNewArticle by id='%v'\n", article.ID)
 	found := findModel(fmt.Sprint(article.ID), "articles")
@@ -121,13 +141,13 @@ func createNewArticle(w http.ResponseWriter, r *http.Request) {
 func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
 	senderFound := findModel(fmt.Sprint(senderId), "users")
-	sender := senderFound.(User)
+	sender := senderFound.(models.User)
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: deleteSingleArticle by id='%v'\n", id)
 	found := findModel(id, "articles")
 	if found != nil {
-		article := found.(Article)
+		article := found.(models.Article)
 		if uint(senderId) != article.UserID && sender.Admin == false {
 			http.Error(w, "Permission Dinied!", http.StatusForbidden)
 			return
@@ -152,7 +172,7 @@ func deleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
 	senderFound := findModel(fmt.Sprint(senderId), "users")
-	sender := senderFound.(User)
+	sender := senderFound.(models.User)
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: updateSingleArticle by id='%v'\n", id)
@@ -161,7 +181,7 @@ func updateSingleArticle(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
 		reqBody, _ := ioutil.ReadAll(r.Body)
-		var article Article
+		var article models.Article
 		var reqMap map[string]string
 		db.First(&article, id)
 		json.Unmarshal(reqBody, &reqMap)
@@ -210,7 +230,7 @@ func returnSingleUser(w http.ResponseWriter, r *http.Request) {
 
 func createNewUser(w http.ResponseWriter, r *http.Request) {
 	reqBody, _ := ioutil.ReadAll(r.Body)
-	var user User
+	var user models.User
 	json.Unmarshal(reqBody, &user)
 	fmt.Printf("Endpoint Hit: CreateNewUser by id='%v'\n", user.ID)
 	found := findModel(fmt.Sprint(user.ID), "users")
@@ -221,7 +241,7 @@ func createNewUser(w http.ResponseWriter, r *http.Request) {
 			user.Admin = false
 		} else {
 			senderFound := findModel(fmt.Sprint(senderId.(uint)), "users")
-			sender := senderFound.(User)
+			sender := senderFound.(models.User)
 			if sender.Admin == false {
 				user.Admin = false
 			}
@@ -238,15 +258,15 @@ func createNewUser(w http.ResponseWriter, r *http.Request) {
 		// Show every things about new user exp: Hashed password, jwt token
 		var tmpUser struct {
 			ID        uint
-			FirstName string    `json:"first_name"`
-			LastName  string    `json:"last_name"`
-			Email     string    `json:"email"`
-			Age       string    `json:"age"`
-			Username  string    `json:"username"`
-			Password  string    `json:"password"`
-			Admin     bool      `json:"admin"`
-			Token     string    `json:"token"`
-			Articles  []Article `json:"articles"`
+			FirstName string           `json:"first_name"`
+			LastName  string           `json:"last_name"`
+			Email     string           `json:"email"`
+			Age       string           `json:"age"`
+			Username  string           `json:"username"`
+			Password  string           `json:"password"`
+			Admin     bool             `json:"admin"`
+			Token     string           `json:"token"`
+			Articles  []models.Article `json:"articles"`
 		}
 		tmpUser.ID = user.ID
 		tmpUser.FirstName = user.FirstName
@@ -268,7 +288,7 @@ func createNewUser(w http.ResponseWriter, r *http.Request) {
 func deleteSingleUser(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
 	senderFound := findModel(fmt.Sprint(senderId), "users")
-	sender := senderFound.(User)
+	sender := senderFound.(models.User)
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: deleteSingleUser by id='%v'\n", id)
@@ -279,7 +299,7 @@ func deleteSingleUser(w http.ResponseWriter, r *http.Request) {
 	}
 	found := findModel(id, "users")
 	if found != nil {
-		user := found.(User)
+		user := found.(models.User)
 		db.Delete(&user)
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
@@ -300,7 +320,7 @@ func deleteSingleUser(w http.ResponseWriter, r *http.Request) {
 func updateSingleUser(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
 	senderFound := findModel(fmt.Sprint(senderId), "users")
-	sender := senderFound.(User)
+	sender := senderFound.(models.User)
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: updateSingleUser by id='%v'\n", id)
@@ -314,7 +334,7 @@ func updateSingleUser(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
 		reqBody, _ := ioutil.ReadAll(r.Body)
-		var user User
+		var user models.User
 		var reqMap map[string]interface{}
 		db.First(&user, id)
 		json.Unmarshal(reqBody, &reqMap)
@@ -355,7 +375,7 @@ func loginUser(w http.ResponseWriter, r *http.Request) {
 	for _, user := range Users {
 		if user.Username == reqUser && user.Password == hashPass {
 			// Set user in request
-			tk := &Token{UserId: user.ID}
+			tk := &models.Token{UserId: user.ID}
 			token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
 			tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
 			user.Token = tokenString //Store the token in the response
@@ -398,7 +418,7 @@ func returnSingleComment(w http.ResponseWriter, r *http.Request) {
 
 func createNewComment(w http.ResponseWriter, r *http.Request) {
 	reqBody, _ := ioutil.ReadAll(r.Body)
-	var comment Comment
+	var comment models.Comment
 	json.Unmarshal(reqBody, &comment)
 	fmt.Printf("Endpoint Hit: CreateNewComment by id='%v'\n", comment.ID)
 	found := findModel(fmt.Sprint(comment.ID), "comments")
@@ -425,13 +445,13 @@ func createNewComment(w http.ResponseWriter, r *http.Request) {
 func deleteSingleComment(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
 	senderFound := findModel(fmt.Sprint(senderId), "users")
-	sender := senderFound.(User)
+	sender := senderFound.(models.User)
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: deleteSingleComment by id='%v'\n", id)
 	found := findModel(id, "comments")
 	if found != nil {
-		comment := found.(Comment)
+		comment := found.(models.Comment)
 		if uint(senderId) != comment.UserID && sender.Admin == false {
 			http.Error(w, "Permission Dinied!", http.StatusForbidden)
 			return
@@ -456,7 +476,7 @@ func deleteSingleComment(w http.ResponseWriter, r *http.Request) {
 func updateSingleComment(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
 	senderFound := findModel(fmt.Sprint(senderId), "users")
-	sender := senderFound.(User)
+	sender := senderFound.(models.User)
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: updateSingleComment by id='%v'\n", id)
@@ -465,7 +485,7 @@ func updateSingleComment(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
 		reqBody, _ := ioutil.ReadAll(r.Body)
-		var comment Comment
+		var comment models.Comment
 		var reqMap map[string]string
 		db.First(&comment, id)
 		json.Unmarshal(reqBody, &reqMap)
