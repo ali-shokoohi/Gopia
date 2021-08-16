@@ -1,4 +1,4 @@
-package main
+package routers
 
 import (
 	"fmt"
@@ -11,7 +11,8 @@ import (
 	"gitlab.com/greenly/go-rest-api/utils/middlewares"
 )
 
-func handleRequests() {
+// HandleRequests for handle all requests
+func HandleRequests() {
 	router := mux.NewRouter().StrictSlash(true)
 	// Enable CORS for all endpoints
 	router.Use(middlewares.CORSMiddleWare)
