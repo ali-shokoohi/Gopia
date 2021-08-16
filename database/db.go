@@ -1,4 +1,4 @@
-package main
+package database
 
 import (
 	"fmt"
@@ -20,7 +20,11 @@ var (
 	sslmode    = os.Getenv("sslmode")
 )
 
-func getDatabase() *gorm.DB {
+// Database type
+type Database struct{}
+
+// GetDatabase () *gorm.DB {...} Return a valid database client
+func (database *Database) GetDatabase() *gorm.DB {
 	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s "+
 		"password=%s dbname=%s sslmode=%s TimeZone=Asia/Tehran",
 		dbhost, dbport, dbuser, dbpassword, dbname, sslmode)

@@ -11,10 +11,11 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/patrickmn/go-cache"
+	"gitlab.com/greenly/go-rest-api/database"
 	"gorm.io/gorm"
 )
 
-var db = getDatabase()
+var db = new(database.Database).GetDatabase()
 var AppCache *cache.Cache = getCache()
 
 type Article struct {
