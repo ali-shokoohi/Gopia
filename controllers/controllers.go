@@ -61,6 +61,27 @@ func findComment(id string, comments []models.Comment) interface{} {
 	return nil
 }
 
+// Filter objects in a slice (Array, List)
+func filter(StringList []byte, key string, value string) []map[string]interface{} {
+	// Convert []byte to slice of map[string]interface{}
+	var list []map[string]interface{}
+	err := json.Unmarshal(StringList, &list)
+	if err != nil {
+		panic(err)
+	}
+	// Search for our value
+	var found []map[string]interface{}
+	for _, element := range list {
+		if fmt.Sprint(element[key]) == value {
+			found = append(found, element)
+		}
+	}
+	if len(found) == 0 {
+		return nil
+	}
+	return found
+}
+
 // HomePage controller
 func HomePage(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Welcome to HomePage!")
