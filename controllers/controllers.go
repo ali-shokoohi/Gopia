@@ -62,15 +62,15 @@ func findComment(id string, comments []models.Comment) interface{} {
 	return nil
 }
 
-func toGenericSlice(slice ...interface{}) []interface{} {
-	return slice
-}
-
 // Filter objects in a slice (Array, List)
-func filter(StringList []byte, key string, value string) []map[string]interface{} {
-	// Convert []byte to slice of map[string]interface{}
+func filter(key string, value string, slices ...interface{}) []map[string]interface{} {
+	StringList, err := json.Marshal(slices[0]) // [0] is because for we have only one ...interface{}
+	if err != nil {
+		panic(err)
+	}
+	// Convert []byte to slice of []map[string]interface{}
 	var list []map[string]interface{}
-	err := json.Unmarshal(StringList, &list)
+	err = json.Unmarshal(StringList, &list)
 	if err != nil {
 		panic(err)
 	}
@@ -106,17 +106,15 @@ func SkipCORS(w http.ResponseWriter, r *http.Request) {
 
 // ReturnAllArticles controller
 func ReturnAllArticles(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Endpoint Hit: returnAllArticles")
 	rawQuery := r.URL.RawQuery
+	// If rawQuery is exists in request. ex: UserID=1
 	if len(rawQuery) > 0 {
-		splited := strings.Split(rawQuery, "=")
-		StringList, err := json.Marshal(models.Articles)
-		if err != nil {
-			panic(err)
-		}
-		found := filter(StringList, splited[0], splited[1])
+		fmt.Printf("Endpoint Hit: ReturnAllArticles by '%s'\n", rawQuery)
+		cut := strings.Split(rawQuery, "=")
+		key, value := cut[0], cut[1]
+		found := filter(key, value, models.Articles)
 		if found == nil {
-			result := fmt.Sprintf("No article found by '%s': '%s'!", splited[0], splited[1])
+			result := fmt.Sprintf("No article found by '%s': '%s'!", key, value)
 			w.WriteHeader(404)
 			http.Error(w, result, http.StatusBadRequest)
 			return
@@ -125,6 +123,7 @@ func ReturnAllArticles(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(found)
 		return
 	}
+	fmt.Println("Endpoint Hit: returnAllArticles")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(models.Articles)
 }
@@ -242,17 +241,15 @@ func UpdateSingleArticle(w http.ResponseWriter, r *http.Request) {
 
 // ReturnAllUsers controller
 func ReturnAllUsers(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Endpoint Hit: returnAllUsers")
 	rawQuery := r.URL.RawQuery
+	// If rawQuery is exists in request. ex: admin=true
 	if len(rawQuery) > 0 {
-		splited := strings.Split(rawQuery, "=")
-		StringList, err := json.Marshal(models.Users)
-		if err != nil {
-			panic(err)
-		}
-		found := filter(StringList, splited[0], splited[1])
+		fmt.Printf("Endpoint Hit: ReturnAllUsers by '%s'\n", rawQuery)
+		cut := strings.Split(rawQuery, "=")
+		key, value := cut[0], cut[1]
+		found := filter(key, value, models.Users)
 		if found == nil {
-			result := fmt.Sprintf("No article found by '%s': '%s'!", splited[0], splited[1])
+			result := fmt.Sprintf("No user found by '%s': '%s'!", key, value)
 			w.WriteHeader(404)
 			http.Error(w, result, http.StatusBadRequest)
 			return
@@ -261,6 +258,7 @@ func ReturnAllUsers(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(found)
 		return
 	}
+	fmt.Println("Endpoint Hit: returnAllUsers")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(models.Users)
 }
@@ -454,17 +452,15 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 
 // ReturnAllComments controller
 func ReturnAllComments(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Endpoint Hit: returnAllComments")
 	rawQuery := r.URL.RawQuery
+	// If rawQuery is exists in request. ex: UserID=1
 	if len(rawQuery) > 0 {
-		splited := strings.Split(rawQuery, "=")
-		StringList, err := json.Marshal(models.Comments)
-		if err != nil {
-			panic(err)
-		}
-		found := filter(StringList, splited[0], splited[1])
+		fmt.Printf("Endpoint Hit: ReturnAllComments by '%s'\n", rawQuery)
+		cut := strings.Split(rawQuery, "=")
+		key, value := cut[0], cut[1]
+		found := filter(key, value, models.Comments)
 		if found == nil {
-			result := fmt.Sprintf("No article found by '%s': '%s'!", splited[0], splited[1])
+			result := fmt.Sprintf("No comment found by '%s': '%s'!", key, value)
 			w.WriteHeader(404)
 			http.Error(w, result, http.StatusBadRequest)
 			return
@@ -473,6 +469,7 @@ func ReturnAllComments(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(found)
 		return
 	}
+	fmt.Println("Endpoint Hit: returnAllComments")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(models.Comments)
 }
