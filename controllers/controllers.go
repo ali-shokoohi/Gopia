@@ -62,6 +62,10 @@ func findComment(id string, comments []models.Comment) interface{} {
 	return nil
 }
 
+func toGenericSlice(slice ...interface{}) []interface{} {
+	return slice
+}
+
 // Filter objects in a slice (Array, List)
 func filter(StringList []byte, key string, value string) []map[string]interface{} {
 	// Convert []byte to slice of map[string]interface{}
