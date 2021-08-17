@@ -239,6 +239,24 @@ func UpdateSingleArticle(w http.ResponseWriter, r *http.Request) {
 // ReturnAllUsers controller
 func ReturnAllUsers(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Endpoint Hit: returnAllUsers")
+	rawQuery := r.URL.RawQuery
+	if len(rawQuery) > 0 {
+		splited := strings.Split(rawQuery, "=")
+		StringList, err := json.Marshal(models.Users)
+		if err != nil {
+			panic(err)
+		}
+		found := filter(StringList, splited[0], splited[1])
+		if found == nil {
+			result := fmt.Sprintf("No article found by '%s': '%s'!", splited[0], splited[1])
+			w.WriteHeader(404)
+			http.Error(w, result, http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(found)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(models.Users)
 }
