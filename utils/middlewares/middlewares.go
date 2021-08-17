@@ -74,8 +74,8 @@ func JWTMiddleWare(handler http.Handler) http.Handler {
 			handler.ServeHTTP(w, r)
 			return
 		}
-		notAuth := []string{"/user/new", "/user/login"} //List of endpoints that doesn't require auth
-		requestPath := r.URL.Path                       //current request path
+		notAuth := []string{"/users/new", "/users/login"} //List of endpoints that doesn't require auth
+		requestPath := r.URL.Path                         //current request path
 		necessary := [1]bool{true}
 		//check if request does not need authentication, serve the request if it doesn't need it
 		for _, value := range notAuth {
