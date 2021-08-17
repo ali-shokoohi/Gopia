@@ -451,6 +451,24 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 // ReturnAllComments controller
 func ReturnAllComments(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Endpoint Hit: returnAllComments")
+	rawQuery := r.URL.RawQuery
+	if len(rawQuery) > 0 {
+		splited := strings.Split(rawQuery, "=")
+		StringList, err := json.Marshal(models.Comments)
+		if err != nil {
+			panic(err)
+		}
+		found := filter(StringList, splited[0], splited[1])
+		if found == nil {
+			result := fmt.Sprintf("No article found by '%s': '%s'!", splited[0], splited[1])
+			w.WriteHeader(404)
+			http.Error(w, result, http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(found)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(models.Comments)
 }
