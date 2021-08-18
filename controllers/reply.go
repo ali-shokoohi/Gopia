@@ -3,8 +3,10 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"gitlab.com/greenly/go-rest-api/models"
@@ -69,4 +71,47 @@ func ReturnSingleCommentReply(w http.ResponseWriter, r *http.Request) {
 	reply := filterred[0] // [0] because ID field is a primarykey in database
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(reply)
+}
+
+// CreateNewCommentReply : Create a new reply of a comment object
+func CreateNewCommentReply(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	fmt.Printf("Endpoint Hit: returnSingeCommentReply by id='%v'\n", id)
+	found := findObject(id, models.Comments)
+	if found == nil {
+		result := fmt.Sprintf("No comment found by id: '%v'!", id)
+		w.WriteHeader(404)
+		http.Error(w, result, http.StatusBadRequest)
+		return
+	}
+	var comment models.Comment
+	models.DB.First(&comment, found.(map[string]interface{})["ID"])
+	reqBody, _ := ioutil.ReadAll(r.Body)
+	var reply models.Comment
+	json.Unmarshal(reqBody, &reply)
+	fmt.Printf("Endpoint Hit: CreateNewCommentReply by id='%v'\n", reply.ID)
+	found = findObject(fmt.Sprint(reply.ID), models.Comments)
+	if found == nil {
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		userId := r.Context().Value("user").(uint)
+		reply.UserID = uint(userId)
+		// Create reply
+		models.DB.Create(&reply)
+		// Append reply to its comment
+		comment.Replies = append(comment.Replies, &reply)
+		models.DB.Save(&comment)
+		// Reload Users list
+		models.DB.Preload("Replies").Find(&models.Comments)
+		models.DB.Preload("Comments").Find(&models.Articles)
+		models.DB.Preload("Articles").Preload("Comments").Find(&models.Users)
+		models.AppCache.Set("comments", models.Comments, 24*time.Hour)
+		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
+		models.AppCache.Set("users", models.Users, 24*time.Hour)
+		json.NewEncoder(w).Encode(comment)
+	} else {
+		result := fmt.Sprintf("One comment found by id: '%v'!", comment.ID)
+		http.Error(w, result, http.StatusBadRequest)
+	}
 }
