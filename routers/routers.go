@@ -50,6 +50,7 @@ func HandleRequests() {
 	router.HandleFunc("/comments/{id}", controllers.UpdateSingleComment).Methods("PUT")
 	// Routers for /comment/{id}/replies... end point
 	router.HandleFunc("/comments/{id}/replies", controllers.ReturnAllCommentReplies).Methods("GET")
+	router.HandleFunc("/comments/{id}/replies", controllers.CreateNewCommentReply).Methods("POST")
 	router.HandleFunc("/comments/{id}/replies/{rd}", controllers.ReturnSingleCommentReply).Methods("GET")
 	// Get port from environments
 	port := os.Getenv("PORT")
