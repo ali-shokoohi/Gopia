@@ -115,3 +115,44 @@ func CreateNewCommentReply(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, result, http.StatusBadRequest)
 	}
 }
+
+// DeleteSingleCommentReply : Delete a single comment's reply object from database by ID
+func DeleteSingleCommentReply(w http.ResponseWriter, r *http.Request) {
+	senderId := r.Context().Value("user").(uint)
+	senderFound := findObject(fmt.Sprint(senderId), models.Users)
+	sender := senderFound.(map[string]interface{})
+	vars := mux.Vars(r)
+	id := vars["id"]
+	rd := vars["rd"]
+	fmt.Printf("Endpoint Hit: deleteSingleCommentReply by id='%v'\n", rd)
+	found := findObject(id, models.Comments)
+	if found != nil {
+		comment := found.(map[string]interface{})
+		if uint(senderId) != comment["UserID"] && sender["Admin"] == false {
+			http.Error(w, "Permission Dinied!", http.StatusForbidden)
+			return
+		}
+		replies := comment["replies"]
+		filterred := filter("ID", rd, replies)
+		if filterred == nil {
+			result := fmt.Sprintf("No reply found by id '%v' in comment's replies '%v'!", rd, id)
+			http.Error(w, result, http.StatusBadRequest)
+			return
+		}
+		reply := filterred[0] // [0] because ID field is a primarykey in database
+		models.DB.Delete(&models.Comment{}, reply["ID"])
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		models.DB.Preload("Replies").Find(&models.Comments)
+		models.DB.Preload("Comments").Find(&models.Articles)
+		models.DB.Preload("Articles").Preload("Comments").Find(&models.Users)
+		models.AppCache.Set("comments", models.Comments, 24*time.Hour)
+		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
+		models.AppCache.Set("users", models.Users, 24*time.Hour)
+		result := comment
+		json.NewEncoder(w).Encode(result)
+	} else {
+		result := fmt.Sprintf("No comment found by id: '%v'!", id)
+		http.Error(w, result, http.StatusBadRequest)
+	}
+}
