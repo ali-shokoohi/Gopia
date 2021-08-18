@@ -43,3 +43,30 @@ func ReturnAllCommentReplies(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(replies)
 }
+
+// ReturnSingleCommentReply : Return a comment's reply by ID
+func ReturnSingleCommentReply(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	fmt.Printf("Endpoint Hit: returnSingeCommentReply by id='%v'\n", id)
+	found := findObject(id, models.Comments)
+	if found == nil {
+		result := fmt.Sprintf("No comment found by id: '%v'!", id)
+		w.WriteHeader(404)
+		http.Error(w, result, http.StatusBadRequest)
+		return
+	}
+	replies := found.(map[string]interface{})["replies"]
+	// Search for a reply via reply ID
+	rd := vars["rd"]
+	filterred := filter("ID", rd, replies)
+	if filterred == nil {
+		result := fmt.Sprintf("No reply found by id: %v!", rd)
+		w.WriteHeader(404)
+		http.Error(w, result, http.StatusBadRequest)
+		return
+	}
+	reply := filterred[0] // [0] because ID field is a primarykey in database
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(reply)
+}
