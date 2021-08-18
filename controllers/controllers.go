@@ -20,26 +20,13 @@ import (
 var ()
 
 // Find a object of specify model
-func findObject(id string, modelType string) interface{} {
-	// Get all objects of specify model if is exists
-	get, exist := models.AppCache.Get(modelType)
-	if exist {
-		// First convert that list to simple slice of map[string]interface{} with json Marshal/Unmarshal
-		StringList, err := json.Marshal(get)
-		if err != nil {
-			panic(err)
-		}
-		var list []map[string]interface{}
-		err = json.Unmarshal(StringList, &list)
-		if err != nil {
-			panic(err)
-		}
-		// Search for our target ID
-		for _, obj := range list {
-			if fmt.Sprint(obj["ID"]) == id {
-				return obj
-			}
-		}
+func findObject(id string, models ...interface{}) interface{} {
+	// We get only one model here, So:
+	model := models[0]
+	// Filter our model's objects with specify ID if It's exists
+	filtered := filter("ID", id, model)
+	if filtered != nil {
+		return filtered[0] // Cause ID is a primarykey in table, We have a maximum of one record
 	}
 	return nil
 }
@@ -115,7 +102,7 @@ func ReturnSingleArticle(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: returnSingeArticle by id='%v'\n", id)
-	found := findObject(id, "articles")
+	found := findObject(id, models.Articles)
 	if found != nil {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
@@ -133,7 +120,7 @@ func CreateNewArticle(w http.ResponseWriter, r *http.Request) {
 	var article models.Article
 	json.Unmarshal(reqBody, &article)
 	fmt.Printf("Endpoint Hit: CreateNewArticle by id='%v'\n", article.ID)
-	found := findObject(fmt.Sprint(article.ID), "articles")
+	found := findObject(fmt.Sprint(article.ID), models.Articles)
 	if found == nil {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
@@ -154,19 +141,19 @@ func CreateNewArticle(w http.ResponseWriter, r *http.Request) {
 // DeleteSingleArticle controller
 func DeleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
-	senderFound := findObject(fmt.Sprint(senderId), "users")
-	sender := senderFound.(models.User)
+	senderFound := findObject(fmt.Sprint(senderId), models.Users)
+	sender := senderFound.(map[string]interface{})
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: deleteSingleArticle by id='%v'\n", id)
-	found := findObject(id, "articles")
+	found := findObject(id, models.Articles)
 	if found != nil {
-		article := found.(models.Article)
-		if uint(senderId) != article.UserID && sender.Admin == false {
+		article := found.(map[string]interface{})
+		if uint(senderId) != article["UserID"] && sender["Admin"] == false {
 			http.Error(w, "Permission Dinied!", http.StatusForbidden)
 			return
 		}
-		models.DB.Delete(&article)
+		models.DB.Delete(&models.Article{}, article["ID"])
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
 		models.DB.Find(&models.Comments)
@@ -186,12 +173,12 @@ func DeleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 // UpdateSingleArticle controller
 func UpdateSingleArticle(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
-	senderFound := findObject(fmt.Sprint(senderId), "users")
-	sender := senderFound.(models.User)
+	senderFound := findObject(fmt.Sprint(senderId), models.Users)
+	sender := senderFound.(map[string]interface{})
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: updateSingleArticle by id='%v'\n", id)
-	found := findObject(id, "articles")
+	found := findObject(id, models.Articles)
 	if found != nil {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
@@ -200,7 +187,7 @@ func UpdateSingleArticle(w http.ResponseWriter, r *http.Request) {
 		var reqMap map[string]string
 		models.DB.First(&article, id)
 		json.Unmarshal(reqBody, &reqMap)
-		if uint(senderId) != article.UserID && sender.Admin == false {
+		if uint(senderId) != article.UserID && sender["Admin"] == false {
 			http.Error(w, "Permission Dinied!", http.StatusForbidden)
 			return
 		}
@@ -250,7 +237,7 @@ func ReturnSingleUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: returnSingeUser by id='%v'\n", id)
-	found := findObject(id, "users")
+	found := findObject(id, models.Users)
 	if found != nil {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
@@ -268,16 +255,16 @@ func CreateNewUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	json.Unmarshal(reqBody, &user)
 	fmt.Printf("Endpoint Hit: CreateNewUser by id='%v'\n", user.ID)
-	found := findObject(fmt.Sprint(user.ID), "users")
+	found := findObject(fmt.Sprint(user.ID), models.Users)
 	if found == nil {
 		// Only admins can create super users!
 		senderId := r.Context().Value("user")
 		if senderId == nil {
 			user.Admin = false
 		} else {
-			senderFound := findObject(fmt.Sprint(senderId.(uint)), "users")
-			sender := senderFound.(models.User)
-			if sender.Admin == false {
+			senderFound := findObject(fmt.Sprint(senderId.(uint)), models.Users)
+			sender := senderFound.(map[string]interface{})
+			if sender["Admin"] == false {
 				user.Admin = false
 			}
 		}
@@ -323,20 +310,20 @@ func CreateNewUser(w http.ResponseWriter, r *http.Request) {
 // DeleteSingleUser controller
 func DeleteSingleUser(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
-	senderFound := findObject(fmt.Sprint(senderId), "users")
-	sender := senderFound.(models.User)
+	senderFound := findObject(fmt.Sprint(senderId), models.Users)
+	sender := senderFound.(map[string]interface{})
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: deleteSingleUser by id='%v'\n", id)
 	// Only owners or admins can do this
-	if strconv.Itoa(int(senderId)) != id && sender.Admin == false {
+	if strconv.Itoa(int(senderId)) != id && sender["Admin"] == false {
 		http.Error(w, "Permission Dinied!", http.StatusForbidden)
 		return
 	}
-	found := findObject(id, "users")
+	found := findObject(id, models.Users)
 	if found != nil {
-		user := found.(models.User)
-		models.DB.Delete(&user)
+		user := found.(map[string]interface{})
+		models.DB.Delete(&models.User{}, user["ID"])
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
 		models.DB.Find(&models.Comments)
@@ -356,17 +343,17 @@ func DeleteSingleUser(w http.ResponseWriter, r *http.Request) {
 // UpdateSingleUser controller
 func UpdateSingleUser(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
-	senderFound := findObject(fmt.Sprint(senderId), "users")
-	sender := senderFound.(models.User)
+	senderFound := findObject(fmt.Sprint(senderId), models.Users)
+	sender := senderFound.(map[string]interface{})
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: updateSingleUser by id='%v'\n", id)
 	// Only owners or admins can do this
-	if strconv.Itoa(int(senderId)) != id && sender.Admin == false {
+	if strconv.Itoa(int(senderId)) != id && sender["Admin"] == false {
 		http.Error(w, "Permission Dinied!", http.StatusForbidden)
 		return
 	}
-	found := findObject(id, "users")
+	found := findObject(id, models.Users)
 	if found != nil {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
@@ -381,7 +368,7 @@ func UpdateSingleUser(w http.ResponseWriter, r *http.Request) {
 		user.Age = reqMap["age"].(string)
 		user.Username = reqMap["username"].(string)
 		user.Password = reqMap["password"].(string)
-		if sender.Admin == true {
+		if sender["Admin"] == true {
 			user.Admin = reqMap["admin"].(bool)
 		}
 		res, ok := user.Update()
@@ -461,7 +448,7 @@ func ReturnSingleComment(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: returnSingeComment by id='%v'\n", id)
-	found := findObject(id, "comments")
+	found := findObject(id, models.Comments)
 	if found != nil {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
@@ -479,7 +466,7 @@ func CreateNewComment(w http.ResponseWriter, r *http.Request) {
 	var comment models.Comment
 	json.Unmarshal(reqBody, &comment)
 	fmt.Printf("Endpoint Hit: CreateNewComment by id='%v'\n", comment.ID)
-	found := findObject(fmt.Sprint(comment.ID), "comments")
+	found := findObject(fmt.Sprint(comment.ID), models.Comments)
 	if found == nil {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
@@ -503,19 +490,19 @@ func CreateNewComment(w http.ResponseWriter, r *http.Request) {
 // DeleteSingleComment controller
 func DeleteSingleComment(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
-	senderFound := findObject(fmt.Sprint(senderId), "users")
-	sender := senderFound.(models.User)
+	senderFound := findObject(fmt.Sprint(senderId), models.Users)
+	sender := senderFound.(map[string]interface{})
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: deleteSingleComment by id='%v'\n", id)
-	found := findObject(id, "comments")
+	found := findObject(id, models.Comments)
 	if found != nil {
-		comment := found.(models.Comment)
-		if uint(senderId) != comment.UserID && sender.Admin == false {
+		comment := found.(map[string]interface{})
+		if uint(senderId) != comment["UserID"] && sender["Admin"] == false {
 			http.Error(w, "Permission Dinied!", http.StatusForbidden)
 			return
 		}
-		models.DB.Delete(&comment)
+		models.DB.Delete(&models.Comment{}, comment["ID"])
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
 		models.DB.Find(&models.Comments)
@@ -535,12 +522,12 @@ func DeleteSingleComment(w http.ResponseWriter, r *http.Request) {
 // UpdateSingleComment controller
 func UpdateSingleComment(w http.ResponseWriter, r *http.Request) {
 	senderId := r.Context().Value("user").(uint)
-	senderFound := findObject(fmt.Sprint(senderId), "users")
-	sender := senderFound.(models.User)
+	senderFound := findObject(fmt.Sprint(senderId), models.Users)
+	sender := senderFound.(map[string]interface{})
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Printf("Endpoint Hit: updateSingleComment by id='%v'\n", id)
-	found := findObject(id, "comments")
+	found := findObject(id, models.Comments)
 	if found != nil {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
@@ -549,7 +536,7 @@ func UpdateSingleComment(w http.ResponseWriter, r *http.Request) {
 		var reqMap map[string]string
 		models.DB.First(&comment, id)
 		json.Unmarshal(reqBody, &reqMap)
-		if senderId != comment.UserID && sender.Admin == false {
+		if senderId != comment.UserID && sender["Admin"] == false {
 			http.Error(w, "Permission Dinied!", http.StatusForbidden)
 			return
 		}
