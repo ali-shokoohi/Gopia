@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/patrickmn/go-cache"
 	"gitlab.com/greenly/go-rest-api/database"
 	"gorm.io/gorm"
@@ -15,14 +14,6 @@ var DB *gorm.DB = new(database.Database).GetDatabase()
 
 // AppCache cache client
 var AppCache *cache.Cache = new(database.Database).GetCache()
-
-/*
-Token JWT claims struct
-*/
-type Token struct {
-	UserId uint
-	jwt.StandardClaims
-}
 
 var models map[string]interface{}
 
