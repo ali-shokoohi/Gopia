@@ -67,7 +67,7 @@ func CreateNewComment(w http.ResponseWriter, r *http.Request) {
 		comment.UserID = uint(userId)
 		models.DB.Create(&comment)
 		// Reload Users list
-		models.DB.Find(&models.Comments)
+		models.DB.Preload("Replies").Find(&models.Comments)
 		models.DB.Preload("Comments").Find(&models.Articles)
 		models.DB.Preload("Articles").Preload("Comments").Find(&models.Users)
 		models.AppCache.Set("comments", models.Comments, 24*time.Hour)
@@ -98,7 +98,7 @@ func DeleteSingleComment(w http.ResponseWriter, r *http.Request) {
 		models.DB.Delete(&models.Comment{}, comment["ID"])
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
-		models.DB.Find(&models.Comments)
+		models.DB.Preload("Replies").Find(&models.Comments)
 		models.DB.Preload("Comments").Find(&models.Articles)
 		models.DB.Preload("Articles").Preload("Comments").Find(&models.Users)
 		models.AppCache.Set("comments", models.Comments, 24*time.Hour)
@@ -135,7 +135,7 @@ func UpdateSingleComment(w http.ResponseWriter, r *http.Request) {
 		}
 		comment.Message = reqMap["Message"]
 		models.DB.Save(&comment)
-		models.DB.Find(&models.Comments)
+		models.DB.Preload("Replies").Find(&models.Comments)
 		models.DB.Preload("Comments").Find(&models.Articles)
 		models.DB.Preload("Articles").Preload("Comments").Find(&models.Users)
 		models.AppCache.Set("comments", models.Comments, 24*time.Hour)
