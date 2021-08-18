@@ -23,10 +23,10 @@ func HandleRequests() {
 	// JWT Authentication middleware
 	router.Use(middlewares.JWTMiddleWare)
 	// Route for all end points to skip OPTIONS method for CORS
-	router.HandleFunc("/article", controllers.SkipCORS).Methods("OPTIONS")
-	router.HandleFunc("/user", controllers.SkipCORS).Methods("OPTIONS")
-	router.HandleFunc("/user/login", controllers.SkipCORS).Methods("OPTIONS")
-	router.HandleFunc("/user/new", controllers.SkipCORS).Methods("OPTIONS")
+	router.HandleFunc("/articles", controllers.SkipCORS).Methods("OPTIONS")
+	router.HandleFunc("/users", controllers.SkipCORS).Methods("OPTIONS")
+	router.HandleFunc("/users/login", controllers.SkipCORS).Methods("OPTIONS")
+	router.HandleFunc("/users/new", controllers.SkipCORS).Methods("OPTIONS")
 	// Router for / end point
 	router.HandleFunc("/", controllers.HomePage)
 	// Routers for /article... end point
