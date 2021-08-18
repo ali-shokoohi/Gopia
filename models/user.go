@@ -101,6 +101,7 @@ func (user User) MarshalJSON() ([]byte, error) {
 	tmp.Age = user.Age
 	tmp.Admin = user.Admin
 	tmp.Articles = user.Articles
+	tmp.Comments = user.Comments
 	return json.Marshal(&tmp)
 }
 
