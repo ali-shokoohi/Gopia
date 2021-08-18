@@ -45,12 +45,6 @@ func filter(key string, value string, slices ...interface{}) []map[string]interf
 	return found
 }
 
-// HomePage controller
-func HomePage(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Welcome to HomePage!")
-	fmt.Println("Endpoint Hit: homePage")
-}
-
 // SkipCORS controller
 func SkipCORS(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Endpoint Hit: skipOPTION")
