@@ -3,7 +3,6 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 )
 
 var ()
@@ -43,15 +42,4 @@ func filter(key string, value string, slices ...interface{}) []map[string]interf
 		return nil
 	}
 	return found
-}
-
-// SkipCORS controller
-func SkipCORS(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Endpoint Hit: skipOPTION")
-	//Allow CORS here By * or specific origin
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-	w.Write([]byte("Ok!"))
 }
