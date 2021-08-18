@@ -52,6 +52,7 @@ func HandleRequests() {
 	router.HandleFunc("/comments/{id}/replies", controllers.ReturnAllCommentReplies).Methods("GET")
 	router.HandleFunc("/comments/{id}/replies", controllers.CreateNewCommentReply).Methods("POST")
 	router.HandleFunc("/comments/{id}/replies/{rd}", controllers.ReturnSingleCommentReply).Methods("GET")
+	router.HandleFunc("/comments/{id}/replies/{rd}", controllers.DeleteSingleCommentReply).Methods("DELETE")
 	// Get port from environments
 	port := os.Getenv("PORT")
 	if port == "" {
