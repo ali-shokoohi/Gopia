@@ -126,7 +126,7 @@ func JWTMiddleWare(handler http.Handler) http.Handler {
 			http.Error(w, "Token is not valid.", http.StatusForbidden)
 			return
 		}
-		if tk.UserId <= 0 {
+		if tk.UserID <= 0 {
 			if !necessary[0] {
 				handler.ServeHTTP(w, r)
 				return
@@ -135,8 +135,8 @@ func JWTMiddleWare(handler http.Handler) http.Handler {
 			return
 		}
 		//Everything went well, proceed with the request and set the caller to the user retrieved from the parsed token
-		fmt.Printf("User %v", tk.UserId) //Useful for monitoring
-		ctx = context.WithValue(r.Context(), "user", tk.UserId)
+		fmt.Printf("User %v:\n", tk.UserID) //Useful for monitoring
+		ctx = context.WithValue(r.Context(), "user", tk.UserID)
 		r = r.WithContext(ctx)
 		handler.ServeHTTP(w, r) //proceed in the middleware chain!
 	})

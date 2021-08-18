@@ -66,7 +66,7 @@ func (user *User) Create() (string, bool) {
 	if user.ID <= 0 {
 		return "Failed to create account, connection error.", false
 	}
-	tk := &Token{UserId: user.ID}
+	tk := &Token{UserID: user.ID}
 	token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
 	tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
 	user.Token = tokenString

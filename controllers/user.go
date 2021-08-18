@@ -209,7 +209,7 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 	for _, user := range models.Users {
 		if user.Username == reqUser && user.Password == hashPass {
 			// Set user in request
-			tk := &models.Token{UserId: user.ID}
+			tk := &models.Token{UserID: user.ID}
 			token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
 			tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
 			user.Token = tokenString //Store the token in the response
