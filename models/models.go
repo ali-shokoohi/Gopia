@@ -21,19 +21,6 @@ var DB *gorm.DB = new(database.Database).GetDatabase()
 // AppCache cache client
 var AppCache *cache.Cache = new(database.Database).GetCache()
 
-// Article type
-type Article struct {
-	gorm.Model
-	Title    string    `gorm:"not null" json:"Title"`
-	Desc     string    `gorm:"not null" json:"Descriptions"`
-	Content  string    `gorm:"not null" json:"Content"`
-	UserID   uint      `gorm:"default:1"`
-	Comments []Comment `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-}
-
-// Articles List of all articles
-var Articles []Article
-
 // User type
 type User struct {
 	gorm.Model
