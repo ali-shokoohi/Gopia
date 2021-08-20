@@ -34,8 +34,8 @@ func (model *Model) PerpareModels() {
 	models["user"] = User{}
 	models["comment"] = Comment{}
 	models["like"] = Like{}
-	DB.Preload("Articles").Preload("Comments").Find(&Users)
-	DB.Preload("Comments").Find(&Articles)
+	DB.Preload("Articles").Preload("Likes").Preload("Comments").Find(&Users)
+	DB.Preload("Likes").Preload("Comments").Find(&Articles)
 	DB.Preload("Replies").Find(&Comments)
 	DB.Find(&Likes)
 	AppCache.Set("users", Users, 24*time.Hour)

@@ -7,7 +7,6 @@ type Like struct {
 	gorm.Model
 	UserID    uint `gorm:"not null"`
 	ArticleID uint
-	CommentID uint
 }
 
 // Likes - List of all likes
