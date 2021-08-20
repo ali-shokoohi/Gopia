@@ -3,8 +3,10 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"gitlab.com/greenly/go-rest-api/models"
@@ -47,6 +49,33 @@ func ReturnSingleLike(w http.ResponseWriter, r *http.Request) {
 	} else {
 		result := fmt.Sprintf("No like found by id: '%v'!", id)
 		w.WriteHeader(404)
+		http.Error(w, result, http.StatusBadRequest)
+	}
+}
+
+// CreateNewLike - Create a new like object
+func CreateNewLike(w http.ResponseWriter, r *http.Request) {
+	reqBody, _ := ioutil.ReadAll(r.Body)
+	var like models.Like
+	json.Unmarshal(reqBody, &like)
+	fmt.Printf("Endpoint Hit: CreateNewLike by id='%v'\n", like.ID)
+	found := findObject(fmt.Sprint(like.ID), models.Likes)
+	if found == nil {
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		userId := r.Context().Value("user").(uint)
+		like.UserID = uint(userId)
+		models.DB.Create(&like)
+		// Reload Users list
+		models.DB.Find(&models.Likes)
+		models.DB.Preload("Comments").Preload("Likes").Find(&models.Articles)
+		models.DB.Preload("Articles").Preload("Comments").Preload("Likes").Find(&models.Users)
+		models.AppCache.Set("likes", models.Likes, 24*time.Hour)
+		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
+		models.AppCache.Set("users", models.Users, 24*time.Hour)
+		json.NewEncoder(w).Encode(like)
+	} else {
+		result := fmt.Sprintf("One like found by id: '%v'!", like.ID)
 		http.Error(w, result, http.StatusBadRequest)
 	}
 }
