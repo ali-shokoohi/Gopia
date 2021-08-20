@@ -95,7 +95,7 @@ func DeleteSingleArticle(w http.ResponseWriter, r *http.Request) {
 		models.DB.Delete(&models.Article{}, article["ID"])
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
-		models.DB.Find(&models.Comments)
+		models.DB.Preload("Replies").Find(&models.Comments)
 		models.DB.Preload("Comments").Find(&models.Articles)
 		models.DB.Preload("Articles").Preload("Comments").Find(&models.Users)
 		models.AppCache.Set("comments", models.Comments, 24*time.Hour)
