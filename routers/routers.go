@@ -64,6 +64,7 @@ func HandleRequests() {
 	router.HandleFunc("/agrees", controllers.ReturnAllAgrees).Methods("GET")
 	router.HandleFunc("/agrees", controllers.CreateNewAgree).Methods("POST")
 	router.HandleFunc("/agrees/{id}", controllers.ReturnSingleAgree).Methods("GET")
+	router.HandleFunc("/agrees/{id}", controllers.DeleteSingleAgree).Methods("DELETE")
 	// Get port from environments
 	port := os.Getenv("PORT")
 	if port == "" {
