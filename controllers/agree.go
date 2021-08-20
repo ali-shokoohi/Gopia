@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gorilla/mux"
 	"gitlab.com/greenly/go-rest-api/models"
 )
 
@@ -31,4 +32,21 @@ func ReturnAllAgrees(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Endpoint Hit: returnAllAgrees")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(models.Agrees)
+}
+
+// ReturnSingleAgree - Return a agree article by ID
+func ReturnSingleAgree(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	fmt.Printf("Endpoint Hit: returnSingeAgree by id='%v'\n", id)
+	found := findObject(id, models.Agrees)
+	if found != nil {
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(found)
+	} else {
+		result := fmt.Sprintf("No agree found by id: '%v'!", id)
+		w.WriteHeader(404)
+		http.Error(w, result, http.StatusBadRequest)
+	}
 }
