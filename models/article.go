@@ -10,6 +10,7 @@ type Article struct {
 	Content  string    `gorm:"not null" json:"Content"`
 	UserID   uint      `gorm:"default:1"`
 	Comments []Comment `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	Likes    []Like    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
 
 // Articles List of all articles
