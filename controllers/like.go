@@ -111,3 +111,42 @@ func DeleteSingleLike(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, result, http.StatusBadRequest)
 	}
 }
+
+// UpdateSingleLike - Update and change a single like in database via ID
+func UpdateSingleLike(w http.ResponseWriter, r *http.Request) {
+	senderId := r.Context().Value("user").(uint)
+	senderFound := findObject(fmt.Sprint(senderId), models.Users)
+	sender := senderFound.(map[string]interface{})
+	vars := mux.Vars(r)
+	id := vars["id"]
+	fmt.Printf("Endpoint Hit: updateSingleLike by id='%v'\n", id)
+	found := findObject(id, models.Likes)
+	if found != nil {
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		reqBody, _ := ioutil.ReadAll(r.Body)
+		var like models.Like
+		var reqMap map[string]interface{}
+		models.DB.First(&like, id)
+		json.Unmarshal(reqBody, &reqMap)
+		fmt.Println(reqMap)
+		if senderId != like.UserID && sender["Admin"] == false {
+			http.Error(w, "Permission Dinied!", http.StatusForbidden)
+			return
+		}
+		like.ArticleID = uint(reqMap["ArticleID"].(float64))
+		models.DB.Save(&like)
+		models.DB.Find(&models.Likes)
+		models.DB.Preload("Comments").Preload("Likes").Find(&models.Articles)
+		models.DB.Preload("Articles").Preload("Comments").Preload("Likes").Find(&models.Users)
+		models.AppCache.Set("likes", models.Likes, 24*time.Hour)
+		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
+		models.AppCache.Set("users", models.Users, 24*time.Hour)
+		result := like
+		json.NewEncoder(w).Encode(result)
+	} else {
+		result := fmt.Sprintf("No like found by id: '%v'!", id)
+		http.Error(w, result, http.StatusBadRequest)
+
+	}
+}
