@@ -11,8 +11,8 @@ import (
 	"gitlab.com/greenly/go-rest-api/utils/middlewares"
 )
 
-// HandleRequests for handle all requests
-func HandleRequests() {
+// CreateRouter for handle all requests
+func CreateRouter() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	// Enable CORS for all endpoints
 	router.Use(middlewares.CORSMiddleWare)
@@ -68,11 +68,12 @@ func HandleRequests() {
 	router.HandleFunc("/agrees/{id}", controllers.ReturnSingleAgree).Methods("GET")
 	router.HandleFunc("/agrees/{id}", controllers.DeleteSingleAgree).Methods("DELETE")
 	router.HandleFunc("/agrees/{id}", controllers.UpdateSingleAgree).Methods("PUT")
-	// Get port from environments
+	// Get port from HandleRequestsenvironments
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8090"
 	}
 	fmt.Println("Listing at: 0.0.0.0:" + port)
 	log.Fatal(http.ListenAndServe(":"+port, router))
+	return router
 }

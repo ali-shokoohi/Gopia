@@ -10,5 +10,5 @@ import (
 func main() {
 	fmt.Println("Go-Rest-API")
 	new(models.Model).PerpareModels()
-	routers.HandleRequests()
+	routers.CreateRouter()
 }
