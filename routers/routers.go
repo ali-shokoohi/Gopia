@@ -56,6 +56,7 @@ func HandleRequests() {
 	router.HandleFunc("/comments/{id}/replies/{rd}", controllers.DeleteSingleCommentReply).Methods("DELETE")
 	// Routers for /like... end point
 	router.HandleFunc("/likes", controllers.ReturnAllLikes).Methods("GET")
+	router.HandleFunc("/likes/{id}", controllers.ReturnSingleLike).Methods("GET")
 	// Get port from environments
 	port := os.Getenv("PORT")
 	if port == "" {
