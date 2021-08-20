@@ -29,6 +29,7 @@ func HandleRequests() {
 	router.HandleFunc("/users/new", controllers.SkipCORS).Methods("OPTIONS")
 	router.HandleFunc("/comments", controllers.SkipCORS).Methods("OPTIONS")
 	router.HandleFunc("/likes", controllers.SkipCORS).Methods("OPTIONS")
+	router.HandleFunc("/agrees", controllers.SkipCORS).Methods("OPTIONS")
 	// Router for / end point
 	router.HandleFunc("/", controllers.HomePage)
 	// Routers for /article... end point
