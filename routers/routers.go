@@ -62,6 +62,7 @@ func HandleRequests() {
 	router.HandleFunc("/likes/{id}", controllers.UpdateSingleLike).Methods("PUT")
 	// Routers for /agree... end point
 	router.HandleFunc("/agrees", controllers.ReturnAllAgrees).Methods("GET")
+	router.HandleFunc("/agrees/{id}", controllers.ReturnSingleAgree).Methods("GET")
 	// Get port from environments
 	port := os.Getenv("PORT")
 	if port == "" {
