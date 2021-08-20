@@ -79,3 +79,35 @@ func CreateNewAgree(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, result, http.StatusBadRequest)
 	}
 }
+
+// DeleteSingleAgree - Delete a single agree object from database by ID
+func DeleteSingleAgree(w http.ResponseWriter, r *http.Request) {
+	senderId := r.Context().Value("user").(uint)
+	senderFound := findObject(fmt.Sprint(senderId), models.Users)
+	sender := senderFound.(map[string]interface{})
+	vars := mux.Vars(r)
+	id := vars["id"]
+	fmt.Printf("Endpoint Hit: deleteSingleAgree by id='%v'\n", id)
+	found := findObject(id, models.Agrees)
+	if found != nil {
+		agree := found.(map[string]interface{})
+		if uint(senderId) != agree["UserID"] && sender["Admin"] == false {
+			http.Error(w, "Permission Dinied!", http.StatusForbidden)
+			return
+		}
+		models.DB.Delete(&models.Agree{}, agree["ID"])
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		models.DB.Find(&models.Agrees)
+		models.DB.Preload("Replies").Preload("Agrees").Find(&models.Comments)
+		models.DB.Preload("Articles").Preload("Comments").Preload("Likes").Preload("Agrees").Find(&models.Users)
+		models.AppCache.Set("agrees", models.Agrees, 24*time.Hour)
+		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
+		models.AppCache.Set("users", models.Users, 24*time.Hour)
+		result := agree
+		json.NewEncoder(w).Encode(result)
+	} else {
+		result := fmt.Sprintf("No agree found by id: '%v'!", id)
+		http.Error(w, result, http.StatusBadRequest)
+	}
+}
