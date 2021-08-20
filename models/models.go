@@ -33,11 +33,14 @@ func (model *Model) PerpareModels() {
 	models["article"] = Article{}
 	models["user"] = User{}
 	models["comment"] = Comment{}
+	models["like"] = Like{}
 	DB.Preload("Articles").Preload("Comments").Find(&Users)
 	DB.Preload("Comments").Find(&Articles)
 	DB.Preload("Replies").Find(&Comments)
+	DB.Find(&Likes)
 	AppCache.Set("users", Users, 24*time.Hour)
 	AppCache.Set("articles", Articles, 24*time.Hour)
 	AppCache.Set("comments", Comments, 24*time.Hour)
+	AppCache.Set("likes", Likes, 24*time.Hour)
 	autoMigrate(models)
 }
