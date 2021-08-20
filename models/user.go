@@ -23,6 +23,7 @@ type User struct {
 	Articles  []Article `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Comments  []Comment `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Likes     []Like    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	Agrees    []Agree   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Token     string    `gorm:"-" sql:"-" json:"token"`
 	Admin     bool      `gorm:"not null; default:false" json:"admin"`
 }
@@ -95,6 +96,7 @@ func (user User) MarshalJSON() ([]byte, error) {
 		Articles  []Article `json:"articles"`
 		Comments  []Comment `json:"comments"`
 		Likes     []Like    `json:"likes"`
+		Agrees    []Agree   `json:"agrees"`
 	}
 	tmp.ID = user.ID
 	tmp.FirstName = user.FirstName
@@ -105,6 +107,7 @@ func (user User) MarshalJSON() ([]byte, error) {
 	tmp.Articles = user.Articles
 	tmp.Comments = user.Comments
 	tmp.Likes = user.Likes
+	tmp.Agrees = user.Agrees
 	return json.Marshal(&tmp)
 }
 
