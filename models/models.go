@@ -7,6 +7,7 @@ import (
 	"github.com/patrickmn/go-cache"
 	"gitlab.com/greenly/go-rest-api/database"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // DB database client
@@ -35,9 +36,9 @@ func (model *Model) PerpareModels() {
 	models["comment"] = Comment{}
 	models["like"] = Like{}
 	models["agree"] = Agree{}
-	DB.Preload("Articles").Preload("Likes").Preload("Comments").Preload("Agrees").Find(&Users)
-	DB.Preload("Likes").Preload("Comments").Find(&Articles)
-	DB.Preload("Agrees").Preload("Replies").Find(&Comments)
+	DB.Preload(clause.Associations).Find(&Users)
+	DB.Preload(clause.Associations).Find(&Articles)
+	DB.Preload(clause.Associations).Find(&Comments)
 	DB.Find(&Likes)
 	DB.Find(&Agrees)
 	AppCache.Set("users", Users, 24*time.Hour)

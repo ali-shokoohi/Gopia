@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"gitlab.com/greenly/go-rest-api/models"
+	"gorm.io/gorm/clause"
 )
 
 // ReturnAllLikes - Return all likes with or without raw query in request
@@ -68,8 +69,8 @@ func CreateNewLike(w http.ResponseWriter, r *http.Request) {
 		models.DB.Create(&like)
 		// Reload Users list
 		models.DB.Find(&models.Likes)
-		models.DB.Preload("Comments").Preload("Likes").Find(&models.Articles)
-		models.DB.Preload("Articles").Preload("Comments").Preload("Likes").Find(&models.Users)
+		models.DB.Preload(clause.Associations).Find(&models.Articles)
+		models.DB.Preload(clause.Associations).Find(&models.Users)
 		models.AppCache.Set("likes", models.Likes, 24*time.Hour)
 		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
 		models.AppCache.Set("users", models.Users, 24*time.Hour)
@@ -99,8 +100,8 @@ func DeleteSingleLike(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
 		models.DB.Find(&models.Likes)
-		models.DB.Preload("Comments").Preload("Likes").Find(&models.Articles)
-		models.DB.Preload("Articles").Preload("Comments").Preload("Likes").Find(&models.Users)
+		models.DB.Preload(clause.Associations).Find(&models.Articles)
+		models.DB.Preload(clause.Associations).Find(&models.Users)
 		models.AppCache.Set("likes", models.Likes, 24*time.Hour)
 		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
 		models.AppCache.Set("users", models.Users, 24*time.Hour)
@@ -137,8 +138,8 @@ func UpdateSingleLike(w http.ResponseWriter, r *http.Request) {
 		like.ArticleID = uint(reqMap["ArticleID"].(float64))
 		models.DB.Save(&like)
 		models.DB.Find(&models.Likes)
-		models.DB.Preload("Comments").Preload("Likes").Find(&models.Articles)
-		models.DB.Preload("Articles").Preload("Comments").Preload("Likes").Find(&models.Users)
+		models.DB.Preload(clause.Associations).Find(&models.Articles)
+		models.DB.Preload(clause.Associations).Find(&models.Users)
 		models.AppCache.Set("likes", models.Likes, 24*time.Hour)
 		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
 		models.AppCache.Set("users", models.Users, 24*time.Hour)

@@ -15,6 +15,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 	"gitlab.com/greenly/go-rest-api/models"
+	"gorm.io/gorm/clause"
 )
 
 // ReturnAllUsers : Return all users with or without raw query in request
@@ -84,7 +85,7 @@ func CreateNewUser(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, res, http.StatusBadRequest)
 			return
 		}
-		models.DB.Preload("Articles").Preload("Comments").Find(&models.Users)
+		models.DB.Preload(clause.Associations).Find(&models.Users)
 		models.AppCache.Set("users", models.Users, 24*time.Hour)
 		// Show every things about new user exp: Hashed password, jwt token
 		var tmpUser struct {
@@ -135,9 +136,13 @@ func DeleteSingleUser(w http.ResponseWriter, r *http.Request) {
 		models.DB.Delete(&models.User{}, user["ID"])
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
-		models.DB.Preload("Replies").Find(&models.Comments)
-		models.DB.Preload("Comments").Find(&models.Articles)
-		models.DB.Preload("Articles").Preload("Comments").Find(&models.Users)
+		models.DB.Find(&models.Likes)
+		models.DB.Find(&models.Agrees)
+		models.DB.Preload(clause.Associations).Find(&models.Comments)
+		models.DB.Preload(clause.Associations).Find(&models.Articles)
+		models.DB.Preload(clause.Associations).Find(&models.Users)
+		models.AppCache.Set("likes", models.Likes, 24*time.Hour)
+		models.AppCache.Set("agrees", models.Agrees, 24*time.Hour)
 		models.AppCache.Set("comments", models.Comments, 24*time.Hour)
 		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
 		models.AppCache.Set("users", models.Users, 24*time.Hour)
@@ -185,7 +190,7 @@ func UpdateSingleUser(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, res, http.StatusBadRequest)
 			return
 		}
-		models.DB.Preload("Articles").Preload("Comments").Find(&models.Users)
+		models.DB.Preload(clause.Associations).Find(&models.Users)
 		models.AppCache.Set("users", models.Users, 24*time.Hour)
 		result := user
 		json.NewEncoder(w).Encode(result)

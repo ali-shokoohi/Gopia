@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"gitlab.com/greenly/go-rest-api/models"
+	"gorm.io/gorm/clause"
 )
 
 // ReturnAllAgrees - Return all agrees with or without raw query in request
@@ -68,10 +69,10 @@ func CreateNewAgree(w http.ResponseWriter, r *http.Request) {
 		models.DB.Create(&agree)
 		// Reload Users list
 		models.DB.Find(&models.Agrees)
-		models.DB.Preload("Replies").Preload("Agrees").Find(&models.Comments)
-		models.DB.Preload("Articles").Preload("Comments").Preload("Likes").Preload("Agrees").Find(&models.Users)
+		models.DB.Preload(clause.Associations).Find(&models.Comments)
+		models.DB.Preload(clause.Associations).Find(&models.Users)
 		models.AppCache.Set("agrees", models.Agrees, 24*time.Hour)
-		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
+		models.AppCache.Set("comments", models.Comments, 24*time.Hour)
 		models.AppCache.Set("users", models.Users, 24*time.Hour)
 		json.NewEncoder(w).Encode(agree)
 	} else {
@@ -99,10 +100,10 @@ func DeleteSingleAgree(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
 		models.DB.Find(&models.Agrees)
-		models.DB.Preload("Replies").Preload("Agrees").Find(&models.Comments)
-		models.DB.Preload("Articles").Preload("Comments").Preload("Likes").Preload("Agrees").Find(&models.Users)
+		models.DB.Preload(clause.Associations).Find(&models.Comments)
+		models.DB.Preload(clause.Associations).Find(&models.Users)
 		models.AppCache.Set("agrees", models.Agrees, 24*time.Hour)
-		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
+		models.AppCache.Set("comments", models.Comments, 24*time.Hour)
 		models.AppCache.Set("users", models.Users, 24*time.Hour)
 		result := agree
 		json.NewEncoder(w).Encode(result)
@@ -137,8 +138,8 @@ func UpdateSingleAgree(w http.ResponseWriter, r *http.Request) {
 		agree.CommentID = uint(reqMap["CommentID"].(float64))
 		models.DB.Save(&agree)
 		models.DB.Find(&models.Agrees)
-		models.DB.Preload("Replies").Preload("Agrees").Find(&models.Comments)
-		models.DB.Preload("Articles").Preload("Comments").Preload("Likes").Preload("Agrees").Find(&models.Users)
+		models.DB.Preload(clause.Associations).Find(&models.Comments)
+		models.DB.Preload(clause.Associations).Find(&models.Users)
 		models.AppCache.Set("agrees", models.Agrees, 24*time.Hour)
 		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
 		models.AppCache.Set("users", models.Users, 24*time.Hour)
