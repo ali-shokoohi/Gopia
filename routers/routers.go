@@ -1,11 +1,6 @@
 package routers
 
 import (
-	"fmt"
-	"log"
-	"net/http"
-	"os"
-
 	"github.com/gorilla/mux"
 	"gitlab.com/greenly/go-rest-api/controllers"
 	"gitlab.com/greenly/go-rest-api/utils/middlewares"
@@ -68,12 +63,5 @@ func CreateRouter() *mux.Router {
 	router.HandleFunc("/agrees/{id}", controllers.ReturnSingleAgree).Methods("GET")
 	router.HandleFunc("/agrees/{id}", controllers.DeleteSingleAgree).Methods("DELETE")
 	router.HandleFunc("/agrees/{id}", controllers.UpdateSingleAgree).Methods("PUT")
-	// Get port from HandleRequestsenvironments
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8090"
-	}
-	fmt.Println("Listing at: 0.0.0.0:" + port)
-	log.Fatal(http.ListenAndServe(":"+port, router))
 	return router
 }
