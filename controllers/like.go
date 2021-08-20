@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gorilla/mux"
 	"gitlab.com/greenly/go-rest-api/models"
 )
 
@@ -31,4 +32,21 @@ func ReturnAllLikes(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Endpoint Hit: returnAllLikes")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(models.Likes)
+}
+
+// ReturnSingleLike - Return a like article by ID
+func ReturnSingleLike(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	fmt.Printf("Endpoint Hit: returnSingeLike by id='%v'\n", id)
+	found := findObject(id, models.Likes)
+	if found != nil {
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(found)
+	} else {
+		result := fmt.Sprintf("No like found by id: '%v'!", id)
+		w.WriteHeader(404)
+		http.Error(w, result, http.StatusBadRequest)
+	}
 }
