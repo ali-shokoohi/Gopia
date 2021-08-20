@@ -79,3 +79,35 @@ func CreateNewLike(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, result, http.StatusBadRequest)
 	}
 }
+
+// DeleteSingleLike - Delete a single like object from database by ID
+func DeleteSingleLike(w http.ResponseWriter, r *http.Request) {
+	senderId := r.Context().Value("user").(uint)
+	senderFound := findObject(fmt.Sprint(senderId), models.Users)
+	sender := senderFound.(map[string]interface{})
+	vars := mux.Vars(r)
+	id := vars["id"]
+	fmt.Printf("Endpoint Hit: deleteSingleLike by id='%v'\n", id)
+	found := findObject(id, models.Likes)
+	if found != nil {
+		like := found.(map[string]interface{})
+		if uint(senderId) != like["UserID"] && sender["Admin"] == false {
+			http.Error(w, "Permission Dinied!", http.StatusForbidden)
+			return
+		}
+		models.DB.Delete(&models.Like{}, like["ID"])
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		models.DB.Find(&models.Likes)
+		models.DB.Preload("Comments").Preload("Likes").Find(&models.Articles)
+		models.DB.Preload("Articles").Preload("Comments").Preload("Likes").Find(&models.Users)
+		models.AppCache.Set("likes", models.Likes, 24*time.Hour)
+		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
+		models.AppCache.Set("users", models.Users, 24*time.Hour)
+		result := like
+		json.NewEncoder(w).Encode(result)
+	} else {
+		result := fmt.Sprintf("No like found by id: '%v'!", id)
+		http.Error(w, result, http.StatusBadRequest)
+	}
+}
