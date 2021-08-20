@@ -3,8 +3,10 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"gitlab.com/greenly/go-rest-api/models"
@@ -47,6 +49,33 @@ func ReturnSingleAgree(w http.ResponseWriter, r *http.Request) {
 	} else {
 		result := fmt.Sprintf("No agree found by id: '%v'!", id)
 		w.WriteHeader(404)
+		http.Error(w, result, http.StatusBadRequest)
+	}
+}
+
+// CreateNewAgree - Create a new agree object
+func CreateNewAgree(w http.ResponseWriter, r *http.Request) {
+	reqBody, _ := ioutil.ReadAll(r.Body)
+	var agree models.Agree
+	json.Unmarshal(reqBody, &agree)
+	fmt.Printf("Endpoint Hit: CreateNewAgree by id='%v'\n", agree.ID)
+	found := findObject(fmt.Sprint(agree.ID), models.Agrees)
+	if found == nil {
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		userId := r.Context().Value("user").(uint)
+		agree.UserID = uint(userId)
+		models.DB.Create(&agree)
+		// Reload Users list
+		models.DB.Find(&models.Agrees)
+		models.DB.Preload("Replies").Preload("Agrees").Find(&models.Comments)
+		models.DB.Preload("Articles").Preload("Comments").Preload("Likes").Preload("Agrees").Find(&models.Users)
+		models.AppCache.Set("agrees", models.Agrees, 24*time.Hour)
+		models.AppCache.Set("articles", models.Articles, 24*time.Hour)
+		models.AppCache.Set("users", models.Users, 24*time.Hour)
+		json.NewEncoder(w).Encode(agree)
+	} else {
+		result := fmt.Sprintf("One agree found by id: '%v'!", agree.ID)
 		http.Error(w, result, http.StatusBadRequest)
 	}
 }
